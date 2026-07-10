@@ -102,32 +102,34 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
 
         }
         else if ($func === "CompetitionDelete") {
-            include "../config.php";
-            $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
-            
-            if (ctype_xdigit($id)) {
-                $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
-
-                $result = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $id . "\";");
-
-                if (mysqli_num_rows($result) === 0) {
-                    echo "";
-                }
-                else {
-                    $stmt = mysqli_prepare($mysql_conn, "DELETE FROM cmtn WHERE id = ?;");
-                    mysqli_stmt_bind_param($stmt, 's', $id);
-                    mysqli_stmt_execute($stmt);
-
+            if (isset($_POST["id"])) {
+                include "../config.php";
+                $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
+                
+                if (ctype_xdigit($id)) {
+                    $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
                     mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
-                    $stmt = mysqli_prepare($mysql_conn, "DELETE FROM cmtn WHERE id = ?;");
-                    mysqli_stmt_bind_param($stmt, 's', $id);
-                    mysqli_stmt_execute($stmt);
 
-                    mysqli_query($mysql_conn, "drop table " . $id . "_ll;");
-                    mysqli_query($mysql_conn, "drop table " . $id . "_sc;");
-                    mysqli_query($mysql_conn, "drop table " . $id . ";");
-                    mysqli_query($mysql_conn, "drop table " . $id . "_pm;");
+                    $result = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $id . "\";");
+
+                    if (mysqli_num_rows($result) === 0) {
+                        echo "";
+                    }
+                    else {
+                        $stmt = mysqli_prepare($mysql_conn, "DELETE FROM cmtn WHERE id = ?;");
+                        mysqli_stmt_bind_param($stmt, 's', $id);
+                        mysqli_stmt_execute($stmt);
+
+                        mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+                        $stmt = mysqli_prepare($mysql_conn, "DELETE FROM cmtn WHERE id = ?;");
+                        mysqli_stmt_bind_param($stmt, 's', $id);
+                        mysqli_stmt_execute($stmt);
+
+                        mysqli_query($mysql_conn, "drop table " . $id . "_ll;");
+                        mysqli_query($mysql_conn, "drop table " . $id . "_sc;");
+                        mysqli_query($mysql_conn, "drop table " . $id . ";");
+                        mysqli_query($mysql_conn, "drop table " . $id . "_pm;");
+                    }
                 }
             }
             
@@ -135,113 +137,168 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
 
         }
         else if ($func === "CompetitionSave") {
-            include "../config.php";
-            $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
-            $ll_json = $_POST["ll"];
-            $sc_json = $_POST["sc"];
-            $ll = json_decode($ll_json);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                echo "JSON 解析错误";
-                exit();
-            }
-            $sc = json_decode($sc_json);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                echo "JSON 解析错误";
-                exit();
-            }
-            $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-            mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
-
-            if (ctype_xdigit($id)) {
-                $result = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $id . "\";");
-                if (mysqli_num_rows($result) === 0) {
-                    echo "";
+            if (isset($_POST["id"])) {
+                include "../config.php";
+                $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
+                $ll_json = $_POST["ll"];
+                $sc_json = $_POST["sc"];
+                $ll = json_decode($ll_json);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    echo "JSON 解析错误";
+                    exit();
                 }
-                else {
-                    foreach($ll as $i) {
-                        $i->stem = htmlspecialchars($i->stem, ENT_QUOTES);
-                        $i->id = hash("md5", $i->stem);
-                        $i->optionA = htmlspecialchars($i->optionA, ENT_QUOTES);
-                        $i->optionB = htmlspecialchars($i->optionB, ENT_QUOTES);
-                        $i->optionC = htmlspecialchars($i->optionC, ENT_QUOTES);
-                        $i->optionD = htmlspecialchars($i->optionD, ENT_QUOTES);
-                        $i->score = htmlspecialchars($i->score, ENT_QUOTES);
-                        $i->correct = htmlspecialchars($i->correct, ENT_QUOTES);
+                $sc = json_decode($sc_json);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    echo "JSON 解析错误";
+                    exit();
+                }
+                $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+
+                if (ctype_xdigit($id)) {
+                    $result = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $id . "\";");
+                    if (mysqli_num_rows($result) === 0) {
+                        echo "";
+                    }
+                    else {
+                        foreach($ll as $i) {
+                            $i->stem = htmlspecialchars($i->stem, ENT_QUOTES);
+                            $i->id = hash("md5", $i->stem);
+                            $i->optionA = htmlspecialchars($i->optionA, ENT_QUOTES);
+                            $i->optionB = htmlspecialchars($i->optionB, ENT_QUOTES);
+                            $i->optionC = htmlspecialchars($i->optionC, ENT_QUOTES);
+                            $i->optionD = htmlspecialchars($i->optionD, ENT_QUOTES);
+                            $i->score = htmlspecialchars($i->score, ENT_QUOTES);
+                            $i->correct = htmlspecialchars($i->correct, ENT_QUOTES);
+                            
+                            if (!ctype_digit($i->score)) {
+                                exit();
+                            }
+                        }
                         
-                        if (!ctype_digit($i->score)) {
-                            exit();
+                        foreach($sc as $i) {
+                            $i->name = htmlspecialchars($i->name, ENT_QUOTES);
+                            $i->id = hash("md5", $i->name);
+                            $i->desc = htmlspecialchars($i->desc, ENT_QUOTES);
+                            $i->answer = htmlspecialchars($i->answer, ENT_QUOTES);
+                            $i->add_score = htmlspecialchars($i->add_score, ENT_QUOTES);
+                            $i->base_score = htmlspecialchars($i->base_score, ENT_QUOTES);
+                            if (!ctype_digit($i->add_score)) {
+                                exit();
+                            }
+                            if (!ctype_digit($i->base_score)) {
+                                exit();
+                            }
+                            
+                        }
+                        mysqli_query($mysql_conn, "delete from " . $id . "_sc;");
+                        mysqli_query($mysql_conn, "delete from " . $id . "_ll;");
+                        foreach($ll as $i) {
+                            $stmt = mysqli_prepare($mysql_conn, "INSERT INTO " . $id . "_ll(id, optionA, optionB, optionC, optionD, correct, stem, score) value(?, ?, ?, ?, ?, ?, ?, ?)");
+                            mysqli_stmt_bind_param($stmt, 'sssssssi', $i->id, $i->optionA, $i->optionB, $i->optionC, $i->optionD, $i->correct, $i->stem, $i->score);
+                            mysqli_stmt_execute($stmt);
+                        }
+                        foreach($sc as $i) {
+                            $stmt = mysqli_prepare($mysql_conn, "INSERT INTO " . $id . "_sc(id, name, timu, flag, add_score, base_score) value(?, ?, ?, ?, ?, ?)");
+                            mysqli_stmt_bind_param($stmt, 'ssssii', $i->id, $i->name, $i->desc, $i->answer, $i->add_score, $i->base_score);
+                            mysqli_stmt_execute($stmt);
                         }
                     }
                     
-                    foreach($sc as $i) {
-                        $i->stem = htmlspecialchars($i->name, ENT_QUOTES);
-                        $i->id = hash("md5", $i->name);
-                        $i->desc = htmlspecialchars($i->desc, ENT_QUOTES);
-                        $i->answer = htmlspecialchars($i->answer, ENT_QUOTES);
-                        $i->add_score = htmlspecialchars($i->add_score, ENT_QUOTES);
-                        $i->base_score = htmlspecialchars($i->base_score, ENT_QUOTES);
-                        if (!ctype_digit($i->add_score)) {
-                            exit();
-                        }
-                        if (!ctype_digit($i->base_score)) {
-                            exit();
-                        }
-                        
-                    }
-                    mysqli_query($mysql_conn, "delete from " . $id . "_sc;");
-                    mysqli_query($mysql_conn, "delete from " . $id . "_ll;");
-                    foreach($ll as $i) {
-                        $stmt = mysqli_prepare($mysql_conn, "INSERT INTO " . $id . "_ll(id, optionA, optionB, optionC, optionD, correct, stem, score) value(?, ?, ?, ?, ?, ?, ?, ?)");
-                        mysqli_stmt_bind_param($stmt, 'sssssssi', $i->id, $i->optionA, $i->optionB, $i->optionC, $i->optionD, $i->correct, $i->stem, $i->score);
-                        mysqli_stmt_execute($stmt);
-                    }
-                    foreach($sc as $i) {
-                        $stmt = mysqli_prepare($mysql_conn, "INSERT INTO " . $id . "_sc(id, name, timu, flag, add_score, base_score) value(?, ?, ?, ?, ?, ?)");
-                        mysqli_stmt_bind_param($stmt, 'ssssii', $i->id, $i->name, $i->desc, $i->answer, $i->add_score, $i->base_score);
-                        mysqli_stmt_execute($stmt);
-                    }
                 }
-                
             }
+
             exit();
 
         }
         else if ($func === "TitleList") {
-            $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
-            if (ctype_xdigit($id)) {
-                include "../config.php";
-                $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+            if (isset($_POST["id"])) {
+                $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
+                if (ctype_xdigit($id)) {
+                    include "../config.php";
+                    $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                    mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
 
-                $string = "{";
-                $result = mysqli_query($mysql_conn, "SELECT id, optionA, optionB, optionC, optionD, correct, stem, score FROM " . $id . "_ll;");
-                if (mysqli_num_rows($result) === 0) {
-                    $string = $string . '"Theory": "None"';
-                } else {
-                    $Theory = '"Theory": [';
-                    while ($row = mysqli_fetch_assoc($result)) {
-                        $Theory = $Theory . '{"id": "' . $row["id"] . '", "optionA": "' . $row["optionA"] . '", "optionB": "' . $row["optionB"] . '", "optionC": "' . $row["optionC"] . '", "optionD": "' . $row["optionD"] . '", "correct": "' . $row["correct"] . '", "stem": "' . $row["stem"] . '", "score": "' . $row["score"] . '"},';
+                    $string = "{";
+                    $result = mysqli_query($mysql_conn, "SELECT id, optionA, optionB, optionC, optionD, correct, stem, score FROM " . $id . "_ll;");
+                    if (mysqli_num_rows($result) === 0) {
+                        $string = $string . '"Theory": "None"';
+                    } else {
+                        $Theory = '"Theory": [';
+                        while ($row = mysqli_fetch_assoc($result)) {
+                            $Theory = $Theory . '{"id": "' . $row["id"] . '", "optionA": "' . $row["optionA"] . '", "optionB": "' . $row["optionB"] . '", "optionC": "' . $row["optionC"] . '", "optionD": "' . $row["optionD"] . '", "correct": "' . $row["correct"] . '", "stem": "' . str_replace("\n", "\\n", $row["stem"]) . '", "score": "' . $row["score"] . '"},';
+                        }
+                        $Theory = substr($Theory, 0, -1);
+                        $Theory = $Theory . "]";
+                        $string = $string . $Theory;
                     }
-                    $Theory = substr($Theory, 0, -1);
-                    $Theory = $Theory . "]";
-                    $string = $string . $Theory;
-                }
-                $string = $string . ",";
-                
-                $result = mysqli_query($mysql_conn, "SELECT id, name, timu, flag, add_score, base_score FROM " . $id . "_sc;");
-                if (mysqli_num_rows($result) === 0) {
-                    $string = $string . '"Practical": "None"';
-                } else {
-                    $Practical = '"Practical": [';
-                    while ($row = mysqli_fetch_assoc($result)) {
-                        $Practical = $Practical . '{"id": "' . $row["id"] . '", "name": "' . $row["name"] . '", "desc": "' . $row["timu"] . '", "answer": "' . $row["flag"] . '", "add_score": "' . $row["add_score"] . '", "base_score": "' . $row["base_score"] . '"},';
+                    $string = $string . ",";
+                    
+                    $result = mysqli_query($mysql_conn, "SELECT id, name, timu, flag, add_score, base_score FROM " . $id . "_sc;");
+                    if (mysqli_num_rows($result) === 0) {
+                        $string = $string . '"Practical": "None"';
+                    } else {
+                        $Practical = '"Practical": [';
+                        while ($row = mysqli_fetch_assoc($result)) {
+                            $Practical = $Practical . '{"id": "' . $row["id"] . '", "name": "' . str_replace("\n", "\\n", $row["name"]) . '", "desc": "' . str_replace("\n", "\\n", $row["timu"]) . '", "answer": "' . $row["flag"] . '", "add_score": "' . $row["add_score"] . '", "base_score": "' . $row["base_score"] . '"},';
+                        }
+                        $Practical = substr($Practical, 0, -1);
+                        $Practical = $Practical . "]";
+                        $string = $string . $Practical;
                     }
-                    $Practical = substr($Practical, 0, -1);
-                    $Practical = $Practical . "]";
-                    $string = $string . $Practical;
+                    $string = $string . "}";
+                    echo $string;
+
                 }
-                $string = $string . "}";
-                echo $string;
+            }
+
+            exit();
+        }
+        else if ($func === "EditMessage") {
+            if (isset($_POST["id"])) {
+                if (isset($_POST["content"])) {
+                    $content = base64_decode($_POST["content"]);
+                    $content = htmlspecialchars($content, ENT_QUOTES);
+                    
+                    if (strlen($content) > 254) {
+                        exit();
+                    }
+
+                    $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
+
+                    if (ctype_xdigit($id)) {
+                        include "../config.php";
+                        $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                        mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+
+                        $stmt = mysqli_prepare($mysql_conn, "update cmtn set message = ? where id = ? ;");
+                        mysqli_stmt_bind_param($stmt, 'ss', $content, $id);
+                        mysqli_stmt_execute($stmt);
+                    }
+                }
+            }
+
+            exit();
+        }
+        else if ($func === "GetMessage") {
+            if (isset($_POST["id"])) {
+                $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
+                if (ctype_xdigit($id)) {
+                    include "../config.php";
+                    $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                    mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+                    $stmt = mysqli_prepare($mysql_conn, "select message from cmtn where id = ? ;");
+                    mysqli_stmt_bind_param($stmt, 's', $id);
+                    mysqli_stmt_execute($stmt);
+                    $result = mysqli_stmt_get_result($stmt);
+                    if (mysqli_num_rows($result) !== 0) {
+                        while ($row = mysqli_fetch_assoc($result)) {
+                            echo $row["message"];
+                        }
+                    }
+                    
+
+                }
 
             }
 
@@ -320,7 +377,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         table { width:100%; border-collapse:collapse; margin-bottom:16px; }
         th, td { padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; font-size:0.85rem; }
         th { color:var(--muted); font-weight:500; }
-        .actions { display:flex; gap:6px; }
+        .actions { display:flex; gap:6px; flex-wrap:wrap; }
         .btn {
             padding:6px 12px;
             background:var(--accent);
@@ -458,6 +515,8 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
             margin-bottom: 20px;
             width: 100%;
         }
+        
+        #announcement-content { min-height:180px; }
     </style>
 </head>
 <body>
@@ -553,10 +612,26 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
     </div>
 </div>
 
+<div class="modal" id="edit-announcement-modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal('edit-announcement-modal')">&times;</button>
+        <div class="modal-title" id="announcement-modal-title">编辑公告</div>
+        <div class="field">
+            <label>公告内容</label>
+            <textarea id="announcement-content" rows="8" placeholder="请输入公告内容…"></textarea>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:16px;">
+            <button class="btn" onclick="saveAnnouncement()">保存</button>
+            <button class="btn danger" onclick="closeModal('edit-announcement-modal')">取消</button>
+        </div>
+    </div>
+</div>
+
 <script>
     var users = [];
     var contests = [];
     var editingContestId = null;
+    var editingAnnouncementContestId = null;
 
     function switchPanel(panel) {
         document.getElementById('nav-users').classList.toggle('active', panel === 'users');
@@ -596,7 +671,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
                         });
                         renderUsers();
                     }
-                    
+
                 } catch (e) {
                     showToast('用户数据解析失败: ' + e.message, 'error');
                     users = [];
@@ -657,7 +732,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
             }
         };
         xhr.send("studentid=" + userId + "&password=" + newPwd + "&func=changepassword");
-        
+
         showToast('用户 ' + userId +' 密码已更新', 'success');
     }
 
@@ -672,14 +747,14 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         xhr.onload = function() {
             if (xhr.status === 200) {
                 showToast('用户已删除', 'success');
-                loadUsers(); // 重新加载列表
+                loadUsers();
             } else {
                 var res = JSON.parse(xhr.responseText);
                 showToast(res.message || '删除失败', 'error');
             }
         };
         xhr.send("studentid=" + userId + "&func=deleteuser");
-        
+
         loadUsers();
         showToast('用户已删除', 'success');
     }
@@ -698,7 +773,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
                         contests = JSON.parse(xhr.responseText);
                         renderContests();
                     }
-                    
+
                 } catch (e) {
                     showToast('比赛数据解析失败', 'error');
                 }
@@ -730,6 +805,8 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
                     '<button class="btn small" onclick="editProblems(\'' + c.id + '\')">编辑题目</button>' +
                     '<button class="btn small danger" onclick="deleteContest(\'' + c.id + '\')">删除</button>' +
                     '<button class="btn small" onclick="openScreen(\'' + c.id + '\')">大屏</button>' +
+                    
+                    '<button class="btn small" onclick="editAnnouncement(\'' + c.id + '\')">编辑公告</button>' +
                 '</td>';
             tbody.appendChild(tr);
         }
@@ -789,7 +866,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         xhr.onload = function() {
             if (xhr.status === 200 || xhr.status === 204) {
                 showToast('比赛已删除', 'success');
-                
+
             } else {
                 showToast('删除失败', 'error');
             }
@@ -828,7 +905,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
             showToast('网络错误', 'error');
         };
         xhr.send("id=" + contestId + "&func=TitleList");
-        
+
     }
 
     function renderTheoryList(theoryList) {
@@ -983,6 +1060,57 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
             showToast('网络错误，无法保存题目', 'error');
         };
         xhr.send("func=CompetitionSave&ll=" + JSON.stringify(theoryPayload) + "&sc=" + JSON.stringify(practicalPayload) + "&id=" + document.getElementById("debug").value);
+    }
+
+    function editAnnouncement(contestId) {
+        editingAnnouncementContestId = contestId;
+
+        var contest = contests.find(function(c) { return c.id === contestId; });
+        var titleEl = document.getElementById('announcement-modal-title');
+        titleEl.textContent = '编辑公告' + (contest ? ' — ' + contest.name : '');
+
+        var textarea = document.getElementById('announcement-content');
+        textarea.value = '';
+
+        document.getElementById('edit-announcement-modal').classList.add('active');
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/dashboard.php');
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onload = function() {
+            textarea.value = xhr.responseText;
+        };
+        xhr.onerror = function() {
+            textarea.value = '';
+        };
+        xhr.send("func=GetMessage&id=" + contestId);
+    }
+
+    function saveAnnouncement() {
+        var contestId = editingAnnouncementContestId;
+        if (!contestId) {
+            showToast('未指定比赛', 'error');
+            return;
+        }
+
+        var content = document.getElementById('announcement-content').value.trim();
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/dashboard.php');
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                showToast('公告保存成功', 'success');
+                closeModal('edit-announcement-modal');
+                loadContests();
+            } else {
+                showToast('保存失败 (状态码: ' + xhr.status + ')', 'error');
+            }
+        };
+        xhr.onerror = function() {
+            showToast('网络错误，无法保存公告', 'error');
+        };
+        xhr.send("func=EditMessage&id=" + contestId + "&content=" + window.btoa(content));
     }
 
     function closeModal(modalId) {

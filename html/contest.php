@@ -175,6 +175,24 @@ if (isset($_SESSION["studentID"])) {
                                         }
                                         exit();
                                     }
+                                    else if ($func === "GetMessage") {
+                                        if (isset($_POST["id"])) {
+                                            $id = $_POST["id"];
+                                            if (ctype_xdigit($id)) {
+                                                $stmt = mysqli_prepare($mysql_conn, "select message from cmtn where id = ? ;");
+                                                mysqli_stmt_bind_param($stmt, 's', $id);
+                                                mysqli_stmt_execute($stmt);
+                                                $result = mysqli_stmt_get_result($stmt);
+                                                if (mysqli_num_rows($result) !== 0) {
+                                                    while ($row = mysqli_fetch_assoc($result)) {
+                                                        echo $row["message"];
+                                                    }
+                                                }
+                                                
+                                            }
+                                        }
+                                        exit();
+                                    }
                                     exit();
                                 }
 ?>
@@ -212,7 +230,8 @@ if (isset($_SESSION["studentID"])) {
         .page-header h1 span { color:var(--text); }
         .page-header .subtitle { font-size:0.75rem; color:var(--muted); letter-spacing:0.5px; }
         .container { display:flex; gap:20px; }
-        .sidebar { width:280px; flex-shrink:0; display:flex; flex-direction:column; gap:20px; }
+        
+        .sidebar { width:340px; flex-shrink:0; display:flex; flex-direction:column; gap:20px; }
         .card {
             background:var(--card); border:1px solid var(--border);
             border-radius:8px; padding:20px;
@@ -297,6 +316,18 @@ if (isset($_SESSION["studentID"])) {
             from { opacity:0; transform:translateX(-50%) translateY(-10px); }
             to { opacity:1; transform:translateX(-50%) translateY(0); }
         }
+        /* 公告区域样式 */
+        #announcement-content {
+            font-size:0.85rem;
+            color:var(--text);
+            word-break:break-word;
+            line-height:1.6;
+            white-space:pre-wrap;
+        }
+        #announcement-content.empty {
+            color:var(--muted);
+            font-style:italic;
+        }
     </style>
 </head>
 <body>
@@ -308,6 +339,7 @@ if (isset($_SESSION["studentID"])) {
 
     <div class="container">
         <div class="sidebar">
+            <!-- 原有信息卡片 -->
             <div class="card">
                 <div class="user-badge">👤 玩家：<span id="display-username"></span></div>
                 <h2>🏆 <span id="contest-name"></span></h2>
@@ -324,6 +356,12 @@ if (isset($_SESSION["studentID"])) {
                     <div>当前排名</div>
                 </div>
             </div>
+
+            <!-- ===== 新增公告卡片 ===== -->
+            <div class="card" id="announcement-card">
+                <h2>📢 公告</h2>
+                <div id="announcement-content" class="empty">加载中…</div>
+            </div>
         </div>
 
         <div class="grid-panel">
@@ -332,6 +370,7 @@ if (isset($_SESSION["studentID"])) {
     </div>
 </div>
 
+<!-- 模态框（保持不变） -->
 <div class="modal" id="theory-modal">
     <div class="modal-content">
         <button class="modal-close" onclick="closeTheoryModal()">&times;</button>
@@ -360,7 +399,7 @@ if (isset($_SESSION["studentID"])) {
 <script>
     var currentUser = { username: '<?php if(true) {$rows = mysqli_fetch_assoc($response); echo $rows["username"];} ?>' };
     var contestInfo = {
-        id: 'abc123',
+        id: '<?php echo $ContestId; ?>',
         name: '<?php echo $Contest_Name; ?>',
         start: '<?php echo $Contest_Start_Time; ?>',
         end: '<?php echo $Contest_End_Time; ?>'
@@ -387,7 +426,6 @@ if (isset($_SESSION["studentID"])) {
                 }
             }
         }
-    
     ?>;
 
     var theoryAnswers = [];
@@ -407,10 +445,32 @@ if (isset($_SESSION["studentID"])) {
         renderChallengeGrid();
         updateScoreAndRank();
         timerInterval = setInterval(updateTime, 1000);
+
+        loadAnnouncement();
+    }
+
+    function loadAnnouncement() {
+        var contentEl = document.getElementById('announcement-content');
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/contest.php?id=' + contestInfo.id);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                contentEl.textContent = xhr.responseText;
+                
+            } else {
+                contentEl.textContent = '暂无公告';
+                contentEl.className = 'empty';
+            }
+        };
+        xhr.onerror = function() {
+            contentEl.textContent = '暂无公告';
+            contentEl.className = 'empty';
+        };
+        xhr.send("func=GetMessage&id=" + contestInfo.id);
     }
 
     function loadChallenges() {
-        
         theoryQuestions = <?php
             if (true) {
                 $result = mysqli_query($mysql_conn, 'SELECT id, stem, score, optionA, optionB, optionC, optionD FROM ' . $ContestId . '_ll;');
@@ -420,13 +480,12 @@ if (isset($_SESSION["studentID"])) {
                 else {
                     $string = "[";
                     while ($row = mysqli_fetch_assoc($result)) {
-                        $string = $string . '{id: "' . $row["id"] . '", stem: "' . $row["stem"] . '", optionA: "' . $row["optionA"] . '", optionB: "' . $row["optionB"] . '", optionC: "' . $row["optionC"] . '", optionD: "' . $row["optionD"] . '", correct: undefined, score: ' . $row["score"] . '},';
+                        $string = $string . '{id: "' . $row["id"] . '", stem: "' . str_replace("\n", "<br/>", $row["stem"]) . '", optionA: "' . $row["optionA"] . '", optionB: "' . $row["optionB"] . '", optionC: "' . $row["optionC"] . '", optionD: "' . $row["optionD"] . '", correct: undefined, score: ' . $row["score"] . '},';
                     }
                     $string = substr($string, 0, -1);
                     $string = $string . "]";
                     echo $string;
                 }
-                
             }
         ?>;
         practicalChallenges = <?php
@@ -457,8 +516,7 @@ if (isset($_SESSION["studentID"])) {
                             $score = mysqli_fetch_assoc($resultC)["score"];
                             $tf = "true";
                         }
-                        
-                        $string = $string . '{id: "' . $row["id"] . '", name: "' . $row["name"] . '", desc: "' . $row["timu"] .  '", answer: undefined, completed: ' . $tf . ', score: ' . $score . '},';
+                        $string = $string . '{id: "' . $row["id"] . '", name: "' . str_replace("\n", "<br/>", $row["name"]) . '", desc: "' . str_replace("\n", "<br/>", $row["timu"]) .  '", answer: undefined, completed: ' . $tf . ', score: ' . $score . '},';
                     }
                     $string = substr($string, 0, -1);
                     $string = $string . "]";
@@ -474,7 +532,6 @@ if (isset($_SESSION["studentID"])) {
         for (var i=0; i < theoryQuestions.length; i++) {
             theoryAnswers.push(null);
         }
-
         renderChallengeGrid();
     }
 
@@ -595,12 +652,7 @@ if (isset($_SESSION["studentID"])) {
             setTimeout(() => {location.reload(); }, 650);
         };
         xhr.onerror = function() { showToast('网络错误，提交失败', 'error'); };
-
-        
         xhr.send("func=ll&json=" + JSON.stringify(payload));
-        
-        
-        
     }
 
     function openPracticalModal(id) {
@@ -610,9 +662,9 @@ if (isset($_SESSION["studentID"])) {
         }
         if (!challenge || challenge.completed) return;
         currentPracticalId = id;
-        document.getElementById('practical-title').textContent = challenge.name;
-        document.getElementById('practical-desc').textContent = challenge.desc;
-        document.getElementById('practical-answer').value = '';
+        document.getElementById('practical-title').innerHTML = challenge.name;
+        document.getElementById('practical-desc').innerHTML = challenge.desc;
+        document.getElementById('practical-answer').innerHTML = '';
         document.getElementById('practical-feedback').style.display = 'none';
         document.getElementById('practical-modal').classList.add('active');
     }
@@ -626,7 +678,7 @@ if (isset($_SESSION["studentID"])) {
             if (practicalChallenges[i].id === currentPracticalId) { challenge = practicalChallenges[i]; break; }
         }
         if (!challenge) return;
-        
+
         const params = new URLSearchParams(window.location.search);
         var xhr = new XMLHttpRequest();
         xhr.open('POST', '/contest.php?id=' + params.get("id"));
@@ -641,7 +693,6 @@ if (isset($_SESSION["studentID"])) {
                     updateScoreAndRank();
                     renderChallengeGrid();
                     setTimeout(() => {location.reload()}, 650);
-                    
                 } else {
                     fb.innerHTML = '<span style="color:var(--danger);">❌ 回答错误，请重试</span>';
                 }
@@ -651,8 +702,6 @@ if (isset($_SESSION["studentID"])) {
             }
         };
         xhr.send("func=sc&id=" + challenge.id + "&answer=" + answer);
-
-
     }
 
     function showToast(msg, type) {
@@ -668,7 +717,6 @@ if (isset($_SESSION["studentID"])) {
 </script>
 </body>
 </html>
-
 <?php
                                 exit();
                             }

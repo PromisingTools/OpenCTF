@@ -34,7 +34,7 @@ date_default_timezone_set('Asia/Shanghai');
     初始化数据库时记得在数据库里创建这两个表
 
     create table user (id char(255) PRIMARY KEY, username char(255), password char(255), email char(255));
-    create table cmtn (id char(255) PRIMARY KEY, name char(255), start_time char(255), end_time char(255));
+    create table cmtn (id char(255) PRIMARY KEY, name char(255), start_time char(255), end_time char(255), message char(255));
 
     
     实操题扣分规则：
