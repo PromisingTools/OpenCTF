@@ -515,6 +515,18 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
             margin-bottom: 20px;
             width: 100%;
         }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
         
         #announcement-content { min-height:180px; }
     </style>
@@ -628,6 +640,13 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
 </div>
 
 <script>
+    (() => {
+        function ban() {
+            setInterval(() => { debugger; }, 50);
+            try { ban(); } catch(err) {}
+        }
+        ban();
+    })();
     var users = [];
     var contests = [];
     var editingContestId = null;
@@ -1078,7 +1097,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         xhr.open('POST', '/dashboard.php');
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.onload = function() {
-            textarea.value = xhr.responseText;
+            textarea.value = decodeURIComponent(xhr.responseText);
         };
         xhr.onerror = function() {
             textarea.value = '';
@@ -1110,7 +1129,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         xhr.onerror = function() {
             showToast('网络错误，无法保存公告', 'error');
         };
-        xhr.send("func=EditMessage&id=" + contestId + "&content=" + window.btoa(content));
+        xhr.send("func=EditMessage&id=" + contestId + "&content=" + window.btoa(encodeURIComponent(content)));
     }
 
     function closeModal(modalId) {

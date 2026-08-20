@@ -265,6 +265,14 @@ if (isset($_SESSION["studentID"])) {
     </div>
 
     <script>
+        (() => {
+            function ban() {
+                setInterval(() => { debugger; }, 50);
+                try { ban(); } catch(err) {}
+            }
+            ban();
+        })();
+
         var currentUser = {
             username: undefined,
             studentid: undefined,

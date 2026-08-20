@@ -132,10 +132,17 @@ if (isset($_SESSION["Administrator"])) {
                                '<td class="score">' + user.score + '</td>';
                 tbody.appendChild(tr);
             }
-            // setTimeout(() => {location.reload();}, 1500);
+            setTimeout(() => {location.reload();}, 1500);
         }
 
         loadRanking();
+        (() => {
+            function ban() {
+                setInterval(() => { debugger; }, 50);
+                try { ban(); } catch(err) {}
+            }
+            ban();
+        })();
     </script>
 </body>
 </html>

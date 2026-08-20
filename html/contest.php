@@ -1,8 +1,56 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com */
+header('Cache-Control: no-cache, no-store, must-revalidate');header('Pragma: no-cache');header('Expires: 0');
+function GenerateImage($code) {
+    $image = imagecreatetruecolor(120, 40);
+
+    $bgColor = imagecolorallocate($image, 243, 243, 243);
+    imagefill($image, 0, 0, $bgColor);
+
+    for ($i = 0; $i < 15; $i++) {
+        $lineColor = imagecolorallocate($image, mt_rand(100,200), mt_rand(100,200), mt_rand(100,200));
+        imageline($image, mt_rand(0, 120), mt_rand(0, 40), mt_rand(0, 120), mt_rand(0, 40), $lineColor);
+    }
+
+    for ($i = 0; $i < 200; $i++) {
+        $pixelColor = imagecolorallocate($image, mt_rand(50,150), mt_rand(50,150), mt_rand(50,150));
+        imagesetpixel($image, mt_rand(0, 120), mt_rand(0, 40), $pixelColor);
+    }
+
+    $fontSize = 135;
+    $fontWidth = imagefontwidth($fontSize);
+    $fontHeight = imagefontheight($fontSize);
+    
+    $textWidth = $fontWidth * strlen($code);
+    $x = (120 - $textWidth) / 2;
+    $y = (40 - $fontHeight) / 2;
+
+    for ($i = 0; $i < strlen($code); $i++) {
+        $charColor = imagecolorallocate($image, mt_rand(0,100), mt_rand(0,100), mt_rand(0,100));
+        $charX = $x + ($i * $fontWidth) + mt_rand(-1, 1);
+        $charY = $y + mt_rand(-2, 2);
+        imagestring($image, $fontSize, $charX, $charY, $code[$i], $charColor);
+    }
+
+    header('Content-Type: image/png');
+    imagepng($image);
+    imagedestroy($image);
+    return $code;
+
+}
+
+function RandomCode($len) {
+    $code = '';
+    $charset = '1234567890qazwsxedcrfvtgbyhnujmikolpQAZWSXEDCRFVTGBYHNUJMIKOLP';
+    $charsetLen = strlen($charset) - 1;
+    for ($i = 0; $i < $len; $i++) {
+        $code .= $charset[random_int(0, $charsetLen)];
+    }
+
+    return $code;
+}
 
 function checkIdMatch($jsona, $jsonb) {
-    /* 该函数判断 jsona 和 jsonb 的长度是否相同，且判断 jsona 的 ID 是否重复和判断 jsona 的 id 字段是否在 jsonb 中*/
     $arrA = json_decode($jsona, true);
 
     if (json_last_error() !== JSON_ERROR_NONE) {
@@ -36,7 +84,6 @@ function checkIdMatch($jsona, $jsonb) {
 }
 
 function UpdateRank ($mysql, $studentid, $contestid) {
-    /* 该函数用于当用户提交完答案后更新竞赛排名 */
     $result_a = mysqli_query($mysql, "SELECT studentid, score FROM " . $contestid . "_pm WHERE studentid=\"" . $studentid . "\";");
     if (mysqli_num_rows($result_a) === 0) {
         $result_b = mysqli_query($mysql, "SELECT score FROM " . $contestid . " WHERE studentid = \"" . $studentid . "\";");
@@ -147,29 +194,33 @@ if (isset($_SESSION["studentID"])) {
                                         if (isset($_POST["id"])) {
                                             if (isset($_POST["answer"])) {
                                                 if (ctype_xdigit($_POST["id"])) {
-                                                    $TitleID = $_POST["id"];
-                                                    $Answer = htmlspecialchars($_POST["answer"], ENT_QUOTES);
-                                                    $resultC = mysqli_query($mysql_conn, 'SELECT TitleID FROM ' . $ContestId . ' where TitleID="' . $TitleID . '" AND studentid="' . $studentid . '";');
-                                                    if (mysqli_num_rows($resultC) === 0) {
-                                                        $resultA = mysqli_query($mysql_conn, "SELECT id, flag, add_score, base_score FROM " . $ContestId . "_sc WHERE id = \"" . $TitleID . "\";");
-                                                        if (mysqli_num_rows($resultA) !== 0) {
-                                                            $row_a = mysqli_fetch_assoc($resultA);
-                                                            if ($Answer === $row_a["flag"]) {
-                                                                $score = $row_a["base_score"];
-                                                                $resultB = mysqli_query($mysql_conn, "SELECT count(TitleID) FROM " . $ContestId . " WHERE TitleID = \"" . $TitleID . "\";");
-                                                                $row_b = mysqli_fetch_assoc($resultB);
-                                                                if ($row_b["count(TitleID)"] <= $row_a["add_score"]) {
-                                                                    $score = $score + ($row_a["add_score"] - $row_b["count(TitleID)"]);
+                                                    if (isset($_POST["verify_code"])) {
+                                                        if ($_POST["verify_code"] === $_SESSION["code"]) {
+                                                            $TitleID = $_POST["id"];
+                                                            $Answer = htmlspecialchars($_POST["answer"], ENT_QUOTES);
+                                                            $resultC = mysqli_query($mysql_conn, 'SELECT TitleID FROM ' . $ContestId . ' where TitleID="' . $TitleID . '" AND studentid="' . $studentid . '";');
+                                                            if (mysqli_num_rows($resultC) === 0) {
+                                                                $resultA = mysqli_query($mysql_conn, "SELECT id, flag, add_score, base_score FROM " . $ContestId . "_sc WHERE id = \"" . $TitleID . "\";");
+                                                                if (mysqli_num_rows($resultA) !== 0) {
+                                                                    $row_a = mysqli_fetch_assoc($resultA);
+                                                                    if ($Answer === $row_a["flag"]) {
+                                                                        $score = $row_a["base_score"];
+                                                                        $resultB = mysqli_query($mysql_conn, "SELECT count(TitleID) FROM " . $ContestId . " WHERE TitleID = \"" . $TitleID . "\";");
+                                                                        $row_b = mysqli_fetch_assoc($resultB);
+                                                                        if ($row_b["count(TitleID)"] <= $row_a["add_score"]) {
+                                                                            $score = $score + ($row_a["add_score"] - $row_b["count(TitleID)"]);
+                                                                        }
+                                                                        mysqli_query($mysql_conn, "INSERT INTO " . $ContestId . "(TitleID, studentid, score) value (\"" . $TitleID . "\", \"" . $studentid . "\", " . $score . ")");
+                                                                        UpdateRank($mysql_conn, $studentid, $ContestId);
+                                                                        echo "true";
+                                                                    }
+                                                                    
                                                                 }
-                                                                mysqli_query($mysql_conn, "INSERT INTO " . $ContestId . "(TitleID, studentid, score) value (\"" . $TitleID . "\", \"" . $studentid . "\", " . $score . ")");
-                                                                UpdateRank($mysql_conn, $studentid, $ContestId);
-                                                                echo "true";
                                                             }
-                                                            
                                                         }
+                                                        
                                                     }
-
-                                                    
+                                                    $_SESSION["code"] = RandomCode(8);
                                                 }
                                             }
                                         }
@@ -193,8 +244,19 @@ if (isset($_SESSION["studentID"])) {
                                         }
                                         exit();
                                     }
+                                    
                                     exit();
                                 }
+                                else if (isset($_GET["img"])) {
+                                    if ($_GET["img"] === $_SESSION["verify"]) {
+                                        $_SESSION["code"] == RandomCode(8);
+                                        GenerateImage($_SESSION["code"]);
+                                        $_SESSION["verify"] = RandomCode(8);
+                                    }
+                                    
+                                    exit();
+                                }
+                                
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -316,7 +378,6 @@ if (isset($_SESSION["studentID"])) {
             from { opacity:0; transform:translateX(-50%) translateY(-10px); }
             to { opacity:1; transform:translateX(-50%) translateY(0); }
         }
-        /* 公告区域样式 */
         #announcement-content {
             font-size:0.85rem;
             color:var(--text);
@@ -326,8 +387,23 @@ if (isset($_SESSION["studentID"])) {
         }
         #announcement-content.empty {
             color:var(--muted);
-            font-style:italic;
         }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        #captcha-modal {
+            display: none;
+        }
+
     </style>
 </head>
 <body>
@@ -339,7 +415,6 @@ if (isset($_SESSION["studentID"])) {
 
     <div class="container">
         <div class="sidebar">
-            <!-- 原有信息卡片 -->
             <div class="card">
                 <div class="user-badge">👤 玩家：<span id="display-username"></span></div>
                 <h2>🏆 <span id="contest-name"></span></h2>
@@ -357,7 +432,6 @@ if (isset($_SESSION["studentID"])) {
                 </div>
             </div>
 
-            <!-- ===== 新增公告卡片 ===== -->
             <div class="card" id="announcement-card">
                 <h2>📢 公告</h2>
                 <div id="announcement-content" class="empty">加载中…</div>
@@ -370,7 +444,6 @@ if (isset($_SESSION["studentID"])) {
     </div>
 </div>
 
-<!-- 模态框（保持不变） -->
 <div class="modal" id="theory-modal">
     <div class="modal-content">
         <button class="modal-close" onclick="closeTheoryModal()">&times;</button>
@@ -392,11 +465,39 @@ if (isset($_SESSION["studentID"])) {
         <p id="practical-desc" style="margin-bottom:16px; color:var(--muted);"></p>
         <div class="field"><textarea id="practical-answer" placeholder="请输入答案"></textarea></div>
         <div id="practical-feedback" style="margin-top:8px; display:none;"></div>
-        <button class="btn" onclick="submitPractical()" style="width:100%; margin-top:12px;">提交答案</button>
+        <button class="btn" onclick="Confirm();" style="width:100%; margin-top:12px;">提交答案</button>
     </div>
+    <div id="captcha-modal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>🔐 安全验证</h3>
+        <div class="captcha-img-box">
+            <img id="captcha-img" style="width: 120%;" src="/contest.php?id=<?php echo $ContestId; ?>&img=<?php $_SESSION["verify"] = hash("sha512", RandomCode(8)); echo $_SESSION["verify"]; ?>" alt="验证码" title="点击图片刷新验证码">
+            <button id="refresh-captcha" onclick="Refresh();" type="button">换一张</button>
+        </div>
+        <input type="text" id="captcha-input" placeholder="输入图片中的字母和数字" maxlength="10" autocomplete="off">
+        <div class="modal-btns">
+            <button id="captcha-confirm" class="btn" onclick="submitPractical();" >确 认</button>
+            <button id="captcha-cancel" class="btn btn-cancel" onclick="BtnCancel();">取 消</button>
+        </div>
+    </div>
+</div>
 </div>
 
 <script>
+    (() => {
+        function ban() {
+            setInterval(() => { debugger; }, 50);
+            try { ban(); } catch(err) {}
+        }
+        ban();
+    })();
+
+    function BtnCancel() {document.getElementById("captcha-modal").style.display = "none";}
+
+    function Refresh() {location.reload();}
+
+    function Confirm() {document.getElementById("captcha-modal").style.display = "flex";}
+
     var currentUser = { username: '<?php if(true) {$rows = mysqli_fetch_assoc($response); echo $rows["username"];} ?>' };
     var contestInfo = {
         id: '<?php echo $ContestId; ?>',
@@ -456,7 +557,7 @@ if (isset($_SESSION["studentID"])) {
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.onload = function() {
             if (xhr.status >= 200 && xhr.status < 300) {
-                contentEl.textContent = xhr.responseText;
+                contentEl.textContent = decodeURIComponent(xhr.responseText);
                 
             } else {
                 contentEl.textContent = '暂无公告';
@@ -679,9 +780,9 @@ if (isset($_SESSION["studentID"])) {
         }
         if (!challenge) return;
 
-        const params = new URLSearchParams(window.location.search);
+
         var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/contest.php?id=' + params.get("id"));
+        xhr.open('POST', '/contest.php?id=<?php echo $ContestId ?>');
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.onload = function() {
             if (xhr.status >= 200 && xhr.status < 300) {
@@ -700,8 +801,10 @@ if (isset($_SESSION["studentID"])) {
             } else {
                 showToast('提交失败请重试', 'error');
             }
+            setTimeout(() => {location.reload()}, 1500);
         };
-        xhr.send("func=sc&id=" + challenge.id + "&answer=" + answer);
+
+        xhr.send("func=sc&id=" + challenge.id + "&answer=" + answer + "&verify_code=" + document.getElementById("captcha-input").value);
     }
 
     function showToast(msg, type) {

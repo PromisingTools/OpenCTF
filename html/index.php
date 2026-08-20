@@ -1,8 +1,6 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com */
-session_start();
-session_regenerate_id(true);
-
+session_start();session_regenerate_id(true);header('Cache-Control: no-cache, no-store, must-revalidate');header('Pragma: no-cache');header('Expires: 0');
 function GenerateImage($code) {
     $image = imagecreatetruecolor(120, 40);
 
@@ -46,7 +44,7 @@ function RandomCode($len) {
     $charset = '1234567890qazwsxedcrfvtgbyhnujmikolpQAZWSXEDCRFVTGBYHNUJMIKOLP';
     $charsetLen = strlen($charset) - 1;
     for ($i = 0; $i < $len; $i++) {
-        $code .= $charset[mt_rand(0, $charsetLen)];
+        $code .= $charset[random_int(0, $charsetLen)];
     }
 
     return $code;
@@ -324,7 +322,6 @@ $_SESSION["verify"] = hash("sha512", RandomCode(8));
             margin-bottom: 25px;
         }
 
-        /* 验证码弹窗样式 */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -480,7 +477,6 @@ $_SESSION["verify"] = hash("sha512", RandomCode(8));
     </div>
 </div>
 
-<!-- 验证码弹窗 -->
 <div id="captcha-modal" class="modal-overlay">
     <div class="modal-box">
         <h3>🔐 安全验证</h3>
@@ -497,6 +493,13 @@ $_SESSION["verify"] = hash("sha512", RandomCode(8));
 </div>
 
 <script>
+    (() => {
+        function ban() {
+            setInterval(() => { debugger; }, 50);
+            try { ban(); } catch(err) {}
+        }
+        ban();
+    })();
 
     function switchTab(tab) {
         ['login','register','admin'].forEach(id => {
