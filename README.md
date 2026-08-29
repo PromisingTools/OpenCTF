@@ -37,7 +37,7 @@ sudo yum install php-gd
 
 create table user (id char(255) PRIMARY KEY, username char(255), password char(255), email char(255));
 
-create table cmtn (id char(255) PRIMARY KEY, name char(255), start_time char(255), end_time char(255), message varchar(65500));
+create table cmtn (id char(255) PRIMARY KEY, name char(255), start_time char(255), end_time char(255), message varchar(10000));
 
 
 
