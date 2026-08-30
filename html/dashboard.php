@@ -71,9 +71,10 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                     mysqli_stmt_execute($stmt);
                     if (ctype_xdigit($id)) {
                         mysqli_query($mysql_conn, "create table " . $id . "_ll (id char(255) PRIMARY KEY, optionA char(255), optionB char(255), optionC char(255), optionD char(255), correct char(255), stem char(255), score int(255));");
-                        mysqli_query($mysql_conn, "create table " . $id . "_sc (id char(255) PRIMARY KEY, name char(255), timu char(255), flag char(255), add_score int(255), base_score int(255));");
+                        mysqli_query($mysql_conn, "create table " . $id . "_sc (id char(255) PRIMARY KEY, name char(255), timu char(255), flag char(255), add_score int(255), base_score int(255), type int(1));");
                         mysqli_query($mysql_conn, "create table " . $id . " (TitleID char(255), studentid char(255), score int(255));");
                         mysqli_query($mysql_conn, "create table " . $id . "_pm (studentid char(255) PRIMARY KEY, score int(255));");
+                        mysqli_query($mysql_conn, "create table " . $id . "_container (time char(255) PRIMARY KEY, studentid char(255), answer char(255), ContestId char(255), ContainerId char(255), message char(255), TrueFalse int(1));");
                     }
                 }
             }
@@ -129,6 +130,7 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                         mysqli_query($mysql_conn, "drop table " . $id . "_sc;");
                         mysqli_query($mysql_conn, "drop table " . $id . ";");
                         mysqli_query($mysql_conn, "drop table " . $id . "_pm;");
+                        mysqli_query($mysql_conn, "drop table " . $id . "_container;");
                     }
                 }
             }
@@ -189,6 +191,9 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                             if (!ctype_digit($i->base_score)) {
                                 exit();
                             }
+                            if (!ctype_digit($i->answer_type)) {
+                                exit();
+                            }
                             
                         }
                         mysqli_query($mysql_conn, "delete from " . $id . "_sc;");
@@ -199,8 +204,8 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                             mysqli_stmt_execute($stmt);
                         }
                         foreach($sc as $i) {
-                            $stmt = mysqli_prepare($mysql_conn, "INSERT INTO " . $id . "_sc(id, name, timu, flag, add_score, base_score) value(?, ?, ?, ?, ?, ?)");
-                            mysqli_stmt_bind_param($stmt, 'ssssii', $i->id, $i->name, $i->desc, $i->answer, $i->add_score, $i->base_score);
+                            $stmt = mysqli_prepare($mysql_conn, "INSERT INTO " . $id . "_sc(id, name, timu, flag, add_score, base_score, type) value(?, ?, ?, ?, ?, ?, ?)");
+                            mysqli_stmt_bind_param($stmt, 'ssssiii', $i->id, $i->name, $i->desc, $i->answer, $i->add_score, $i->base_score, $i->answer_type);
                             mysqli_stmt_execute($stmt);
                         }
                     }
@@ -234,13 +239,13 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                     }
                     $string = $string . ",";
                     
-                    $result = mysqli_query($mysql_conn, "SELECT id, name, timu, flag, add_score, base_score FROM " . $id . "_sc;");
+                    $result = mysqli_query($mysql_conn, "SELECT id, name, timu, flag, add_score, base_score, type FROM " . $id . "_sc;");
                     if (mysqli_num_rows($result) === 0) {
                         $string = $string . '"Practical": "None"';
                     } else {
                         $Practical = '"Practical": [';
                         while ($row = mysqli_fetch_assoc($result)) {
-                            $Practical = $Practical . '{"id": "' . $row["id"] . '", "name": "' . str_replace("\n", "\\n", $row["name"]) . '", "desc": "' . str_replace("\n", "\\n", $row["timu"]) . '", "answer": "' . $row["flag"] . '", "add_score": "' . $row["add_score"] . '", "base_score": "' . $row["base_score"] . '"},';
+                            $Practical = $Practical . '{"id": "' . $row["id"] . '", "name": "' . str_replace("\n", "\\n", $row["name"]) . '", "desc": "' . str_replace("\n", "\\n", $row["timu"]) . '", "answer": "' . $row["flag"] . '", "add_score": "' . $row["add_score"] . '", "base_score": "' . $row["base_score"] . '", "answer_type": "' . $row["type"] . '"},';
                         }
                         $Practical = substr($Practical, 0, -1);
                         $Practical = $Practical . "]";
@@ -515,20 +520,9 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
             margin-bottom: 20px;
             width: 100%;
         }
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-        }
-        
         #announcement-content { min-height:180px; }
+        .answer-type-group label { margin-right: 16px; font-size:0.8rem; }
+        .answer-type-group input[type="radio"] { width:auto; margin-right:4px; }
     </style>
 </head>
 <body>
@@ -640,13 +634,6 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
 </div>
 
 <script>
-    (() => {
-        function ban() {
-            setInterval(() => { debugger; }, 50);
-            try { ban(); } catch(err) {}
-        }
-        ban();
-    })();
     var users = [];
     var contests = [];
     var editingContestId = null;
@@ -988,14 +975,21 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         container.innerHTML = '';
         for (var i = 0; i < practicalList.length; i++) {
             var p = practicalList[i];
+            var answerType = p.answer_type || '0';
+            var answerValue = p.answer || '';
             var html =
                 '<div class="problem-editor" data-practical-id="' + p.id + '">' +
                     '<button class="remove-btn" onclick="removePractical(\'' + p.id + '\')">×</button>' +
                     '<div class="field"><label>题目名称</label><input type="text" class="p-name" value="' + (p.name || '') + '" placeholder="实操题名称"></div>' +
                     '<div class="field"><label>题目描述</label><textarea class="p-desc">' + (p.desc || '') + '</textarea></div>' +
-                    '<div class="field"><label>正确答案</label><input type="text" class="p-answer" value="' + (p.answer || '') + '" placeholder="答案字符串"></div>' +
-                    '<div class="field"><label>基础分数</label><input type="text" id="base_score" value="' + (p.base_score || '') + '" placeholder="基础分数"></div>' +
-                    '<div class="field"><label>附加分数</label><input type="text" id="add_score" value="' + (p.add_score || '') + '" placeholder="附加分数"></div>' +
+                    '<div class="field answer-type-group"><label>答案类型</label><br>' +
+                        '<label><input type="radio" class="answer-type-radio" name="answer_type_' + i + '" value="1" ' + (answerType === '1' ? 'checked' : '') + ' onchange=""> 固定答案</label>' +
+                        '<label><input type="radio" class="answer-type-radio" name="answer_type_' + i + '" value="2" ' + (answerType === '2' ? 'checked' : '') + ' onchange=""> 有限制动态答案</label>' +
+                        '<label><input type="radio" class="answer-type-radio" name="answer_type_' + i + '" value="3" ' + (answerType === '3' ? 'checked' : '') + ' onchange=""> 无限制动态答案</label>' +
+                    '</div>' +
+                    '<div class="field"><label id="answer-label-' + i + '">答案</label><input type="text" class="p-answer" value="' + answerValue + '" placeholder="请输入固定答案或动态 flag 的 API"></div>' +
+                    '<div class="field"><label>基础分数</label><input type="text" class="p-base-score" value="' + (p.base_score || '') + '" placeholder="基础分数"></div>' +
+                    '<div class="field"><label>附加分数</label><input type="text" class="p-add-score" value="' + (p.add_score || '') + '" placeholder="附加分数"></div>' +
                 '</div>';
             container.innerHTML += html;
         }
@@ -1003,14 +997,20 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
 
     function addPracticalProblem() {
         var container = document.getElementById('practical-list');
+        var idx = Date.now();
         var html =
             '<div class="problem-editor" data-practical-id="null">' +
                 '<button class="remove-btn" onclick="removePractical(\'null\')">×</button>' +
                 '<div class="field"><label>题目名称</label><input type="text" class="p-name" placeholder="实操题名称"></div>' +
                 '<div class="field"><label>题目描述</label><textarea class="p-desc"></textarea></div>' +
-                '<div class="field"><label>正确答案</label><input type="text" class="p-answer" placeholder="答案字符串"></div>' +
-                '<div class="field"><label>基础分数</label><input type="text" id="base_score" placeholder="基础分数"></div>' +
-                '<div class="field"><label>附加分数</label><input type="text" id="add_score" placeholder="附加分数"></div>' +
+                '<div class="field answer-type-group"><label>答案类型</label><br>' +
+                    '<label><input type="radio" class="answer-type-radio" name="answer_type_' + idx + '" value="1" checked onchange=""> 固定答案</label>' +
+                    '<label><input type="radio" class="answer-type-radio" name="answer_type_' + idx + '" value="2" onchange=""> 有限制动态答案</label>' +
+                    '<label><input type="radio" class="answer-type-radio" name="answer_type_' + idx + '" value="3" onchange=""> 无限制动态答案</label>' +
+                '</div>' +
+                '<div class="field"><label id="answer-label-' + idx + '">答案</label><input type="text" class="p-answer" placeholder="请输入固定答案或动态 flag 的 API"></div>' +
+                '<div class="field"><label>基础分数</label><input type="text" class="p-base-score" placeholder="基础分数"></div>' +
+                '<div class="field"><label>附加分数</label><input type="text" class="p-add-score" placeholder="附加分数"></div>' +
             '</div>';
         container.innerHTML += html;
     }
@@ -1050,13 +1050,21 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
             if (!name && !desc) continue;
 
             var id = el.getAttribute('data-practical-id');
+            var answerTypeRadio = el.querySelector('.answer-type-radio:checked');
+            var answerType = answerTypeRadio ? answerTypeRadio.value : '1';
+            var answerInput = el.querySelector('.p-answer');
+            var answer = answerInput ? answerInput.value.trim() : '';
+            var baseScore = el.querySelector('.p-base-score').value.trim();
+            var addScore = el.querySelector('.p-add-score').value.trim();
+
             practicalPayload.push({
                 id: id !== 'null' ? id : null,
                 name: name,
                 desc: desc,
-                answer: el.querySelector('.p-answer').value.trim(),
-                base_score: el.querySelector('#base_score').value.trim(),
-                add_score: el.querySelector('#add_score').value.trim()
+                answer: answer,
+                answer_type: answerType,
+                base_score: baseScore,
+                add_score: addScore
             });
         }
         var xhr = new XMLHttpRequest();
