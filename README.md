@@ -21,6 +21,7 @@ default-storage-engine = InnoDB
 character-set-server = utf8mb4
 
 
+记得在 PHP 插件中开启 CURL 功能
 
 
 需要安装 php-gd 模块
