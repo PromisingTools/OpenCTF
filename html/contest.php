@@ -1,5 +1,5 @@
 <?php
-/* Powered By c4e3bac3@foxmail.com */
+/* Powered By c4e3bac3@foxmail.com Hello */
 header('Cache-Control: no-cache, no-store, must-revalidate');header('Pragma: no-cache');header('Expires: 0');
 
 function httpGet($url, $headers = [], $timeout = 10) {
@@ -328,7 +328,6 @@ if (isset($_SESSION["studentID"])) {
                                                                 if (true === true) {
                                                                     $response = httpGet($row["flag"] . "/start");
                                                                     $json = json_decode($response, true);
-                                                                    print_r($json);
                                                                     $temp1 = strval(time());
                                                                     $temp2 = strval($studentid);
                                                                     $temp3 = strval($json["answer"]);

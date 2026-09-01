@@ -1,5 +1,5 @@
 <?php
-/* Powered By c4e3bac3@foxmail.com */
+/* Powered By c4e3bac3@foxmail.com Hello */
 $Administrator = [
     "Username" => "Admin",
     "Password" => "1234567890"
