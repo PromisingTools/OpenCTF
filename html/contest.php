@@ -316,18 +316,19 @@ if (isset($_SESSION["studentID"])) {
                                                         while ($row = mysqli_fetch_assoc($result)) {
                                                             if ($row["type"] === 2) {
                                                                 if (true === true) {
-                                                                    $resultA = mysqli_query($mysql_conn, "SELECT ContainerId FROM " . $ContestId . "_container WHERE studentid = \"" . $studentid . "\" AND ContestId = \"" . $id . "\" AND TrueFalse = 1;");
+                                                                    $resultA = mysqli_query($mysql_conn, "SELECT ContainerId FROM " . $ContestId . "_container WHERE studentid = \"" . $studentid . "\" AND type = 2 AND TrueFalse = 1;");
                                                                     if (mysqli_num_rows($resultA) != 0) {
                                                                         while ($row_a = mysqli_fetch_assoc($resultA)){
                                                                             httpPostForm($row["flag"] . "/stop", [$row_a["ContainerId"]]);
+                                                                            mysqli_query($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = \"" . $row_a["ContainerId"] . "\" AND TrueFalse = 1;");
                                                                         }
                                                                     }
                                                                 }
                                                                 
-                                                                $response = httpGet($row["flag"] . "/start");
-                                                                $json = json_decode($response, true);
-                                                                mysqli_query($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContestId = \"" . $id . "\";");
                                                                 if (true === true) {
+                                                                    $response = httpGet($row["flag"] . "/start");
+                                                                    $json = json_decode($response, true);
+                                                                    print_r($json);
                                                                     $temp1 = strval(time());
                                                                     $temp2 = strval($studentid);
                                                                     $temp3 = strval($json["answer"]);
@@ -335,16 +336,17 @@ if (isset($_SESSION["studentID"])) {
                                                                     $temp5 = strval($json["ContainerID"]);
                                                                     $temp6 = strval($json["message"]);
                                                                     $temp7 = 1;
-                                                                    $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse) VALUES (?, ?, ?, ?, ?, ?, ?);");
-                                                                    mysqli_stmt_bind_param($stmta, 'ssssssi', $temp1, $temp2, $temp3, $temp4, $temp5, $temp6, $temp7);
+                                                                    $temp8 = 2;
+                                                                    $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+                                                                    mysqli_stmt_bind_param($stmta, 'ssssssii', $temp1, $temp2, $temp3, $temp4, $temp5, $temp6, $temp7, $temp8);
                                                                     mysqli_stmt_execute($stmta);
                                                                 }
                                                             }
                                                             else if ($row["type"] === 3) {
-                                                                $response = httpGet($row["flag"] . "/start");
-                                                                $json = json_decode($response, true);
                                                                 mysqli_query($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContestId = \"" . $id . "\";");
                                                                 if (true === true) {
+                                                                    $response = httpGet($row["flag"] . "/start");
+                                                                    $json = json_decode($response, true);
                                                                     $temp1 = strval(time());
                                                                     $temp2 = strval($studentid);
                                                                     $temp3 = strval($json["answer"]);
@@ -352,8 +354,9 @@ if (isset($_SESSION["studentID"])) {
                                                                     $temp5 = strval($json["ContainerID"]);
                                                                     $temp6 = strval($json["message"]);
                                                                     $temp7 = 1;
-                                                                    $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse) VALUES (?, ?, ?, ?, ?, ?, ?);");
-                                                                    mysqli_stmt_bind_param($stmta, 'ssssssi', $temp1, $temp2, $temp3, $temp4, $temp5, $temp6, $temp7);
+                                                                    $temp8 = 3;
+                                                                    $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+                                                                    mysqli_stmt_bind_param($stmta, 'ssssssii', $temp1, $temp2, $temp3, $temp4, $temp5, $temp6, $temp7, $temp8);
                                                                     mysqli_stmt_execute($stmta);
                                                                 }
                                                                 
@@ -616,11 +619,11 @@ if (isset($_SESSION["studentID"])) {
 
 <script>
     (() => {
-        function ban() {
-            setInterval(() => { debugger; }, 50);
-            try { ban(); } catch(err) {}
-        }
-        ban();
+       function ban() {
+           setInterval(() => { debugger; }, 50);
+           try { ban(); } catch(err) {}
+       }
+       ban();
     })();
 
     function BtnCancel() {document.getElementById("captcha-modal").style.display = "none";}
@@ -835,7 +838,7 @@ if (isset($_SESSION["studentID"])) {
                         xhr.onload = function() {
                             if (xhr.status >= 200 && xhr.status < 300) {
                                 showToast("容器启动成功，该页面刷新后重新点击该题目可以看到容器信息", "success");
-                                setTimeout(() => {location.reload()}, 1650);
+                                setTimeout(() => {location.reload()}, 2650);
                                 
                             } else if (xhr.status == 403) {
                                 alert(xhr.responseText, "error");

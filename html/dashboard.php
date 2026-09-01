@@ -74,7 +74,7 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                         mysqli_query($mysql_conn, "create table " . $id . "_sc (id char(255) PRIMARY KEY, name char(255), timu char(255), flag char(255), add_score int(255), base_score int(255), type int(1));");
                         mysqli_query($mysql_conn, "create table " . $id . " (TitleID char(255), studentid char(255), score int(255));");
                         mysqli_query($mysql_conn, "create table " . $id . "_pm (studentid char(255) PRIMARY KEY, score int(255));");
-                        mysqli_query($mysql_conn, "create table " . $id . "_container (time char(255) PRIMARY KEY, studentid char(255), answer char(255), ContestId char(255), ContainerId char(255), message char(255), TrueFalse int(1));");
+                        mysqli_query($mysql_conn, "create table " . $id . "_container (time char(255) PRIMARY KEY, studentid char(255), answer char(255), ContestId char(255), ContainerId char(255), message char(255), TrueFalse int(1), type int(1));");
                     }
                 }
             }
