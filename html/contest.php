@@ -258,19 +258,21 @@ if (isset($_SESSION["studentID"])) {
                                                                     }
                                                                     else {
                                                                         $resultD = mysqli_query($mysql_conn, "SELECT answer FROM " . $ContestId . "_container WHERE TrueFalse = 1 AND studentid = \"" . $studentid . "\" AND ContestId = \"" . $TitleID . "\";");
-                                                                        
-                                                                        $row_c = mysqli_fetch_assoc($resultD);
-                                                                        if ($Answer === $row_c["answer"]) {
-                                                                            $score = $row_a["base_score"];
-                                                                            $resultB = mysqli_query($mysql_conn, "SELECT count(TitleID) FROM " . $ContestId . " WHERE TitleID = \"" . $TitleID . "\";");
-                                                                            $row_b = mysqli_fetch_assoc($resultB);
-                                                                            if ($row_b["count(TitleID)"] <= $row_a["add_score"]) {
-                                                                                $score = $score + ($row_a["add_score"] - $row_b["count(TitleID)"]);
+                                                                        if (mysqli_num_rows($resultD) !== 0) {
+                                                                            $row_c = mysqli_fetch_assoc($resultD);
+                                                                            if ($Answer === $row_c["answer"]) {
+                                                                                $score = $row_a["base_score"];
+                                                                                $resultB = mysqli_query($mysql_conn, "SELECT count(TitleID) FROM " . $ContestId . " WHERE TitleID = \"" . $TitleID . "\";");
+                                                                                $row_b = mysqli_fetch_assoc($resultB);
+                                                                                if ($row_b["count(TitleID)"] <= $row_a["add_score"]) {
+                                                                                    $score = $score + ($row_a["add_score"] - $row_b["count(TitleID)"]);
+                                                                                }
+                                                                                mysqli_query($mysql_conn, "INSERT INTO " . $ContestId . "(TitleID, studentid, score) value (\"" . $TitleID . "\", \"" . $studentid . "\", " . $score . ")");
+                                                                                UpdateRank($mysql_conn, $studentid, $ContestId);
+                                                                                echo "true";
                                                                             }
-                                                                            mysqli_query($mysql_conn, "INSERT INTO " . $ContestId . "(TitleID, studentid, score) value (\"" . $TitleID . "\", \"" . $studentid . "\", " . $score . ")");
-                                                                            UpdateRank($mysql_conn, $studentid, $ContestId);
-                                                                            echo "true";
                                                                         }
+                                                                        
                                                                     }
                                                                     
                                                                     
