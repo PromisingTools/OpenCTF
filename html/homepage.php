@@ -22,7 +22,7 @@ if (isset($_SESSION["studentID"])) {
                         mysqli_stmt_execute($stmt);
                     }
 
-                    if (isset($password)) {
+                    if (isset($_POST["password"])) {
                         $password = htmlspecialchars($_POST["password"], ENT_QUOTES);
                         $stmt = mysqli_prepare($mysql_conn, "UPDATE user set password = ? where id = ?");
                         $password = hash("sha512", $password);

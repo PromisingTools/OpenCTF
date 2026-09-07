@@ -121,11 +121,6 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                         mysqli_stmt_bind_param($stmt, 's', $id);
                         mysqli_stmt_execute($stmt);
 
-                        mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
-                        $stmt = mysqli_prepare($mysql_conn, "DELETE FROM cmtn WHERE id = ?;");
-                        mysqli_stmt_bind_param($stmt, 's', $id);
-                        mysqli_stmt_execute($stmt);
-
                         mysqli_query($mysql_conn, "drop table " . $id . "_ll;");
                         mysqli_query($mysql_conn, "drop table " . $id . "_sc;");
                         mysqli_query($mysql_conn, "drop table " . $id . ";");

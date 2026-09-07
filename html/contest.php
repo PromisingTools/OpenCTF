@@ -380,7 +380,7 @@ if (isset($_SESSION["studentID"])) {
                                 }
                                 else if (isset($_GET["img"])) {
                                     if ($_GET["img"] === $_SESSION["verify"]) {
-                                        $_SESSION["code"] == RandomCode(8);
+                                        $_SESSION["code"] = RandomCode(8);
                                         GenerateImage($_SESSION["code"]);
                                         $_SESSION["verify"] = RandomCode(8);
                                     }
