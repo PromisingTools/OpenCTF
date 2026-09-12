@@ -34,7 +34,7 @@ if (isset($_SESSION["studentID"])) {
                         mysqli_stmt_bind_param($stmt, 'ss', $password, $studentid);
                         mysqli_stmt_execute($stmt);
                     }
-                    if ($_POST['username']) {
+                    if (isset($_POST['username'])) {
                         $username = htmlspecialchars($_POST['username'], ENT_QUOTES);
                         $stmt = mysqli_prepare($mysql_conn, "UPDATE user set username = ? where id = ?");
                         mysqli_stmt_bind_param($stmt, 'ss', $username, $studentid);
