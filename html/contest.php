@@ -209,7 +209,7 @@ if (isset($_SESSION["studentID"])) {
                                                             $result_a = mysqli_query($mysql_conn, "SELECT id, score, correct FROM " . $ContestId . "_ll WHERE id = \"" . $i->id . "\";");
                                                             $row_a = mysqli_fetch_assoc($result_a);
                                                             $correct = $row_a["correct"]; $score = $row_a["score"];
-                                                            if ($correct == $i->answer) {
+                                                            if ($correct === $i->answer) {
                                                                 mysqli_query($mysql_conn, 'INSERT INTO ' . $ContestId . '(TitleID, studentid, score) value ("' . $i->id . '", "' . $studentid . '", ' . $score . ');');
                                                             }
                                                             else {
