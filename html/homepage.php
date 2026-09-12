@@ -1,6 +1,11 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com Hello */
-session_start();
+if (!isset($_COOKIE[session_name()])) {
+    http_response_code(404);
+    echo "<br/><center><br/><h1> 道 阻 且 长 | 行 则 将 至 </h1></center>";
+    exit();
+}
+session_start(['cookie_httponly' => true]);
 if (isset($_SESSION["studentID"])) {
     $studentid = $_SESSION["studentID"];
     if(ctype_digit($studentid)) {

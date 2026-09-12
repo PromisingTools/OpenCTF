@@ -1,7 +1,10 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com  Hello */
-session_start();
-
+session_start(['cookie_httponly' => true]);
+if (!isset($_COOKIE[session_name()])) {
+    http_response_code(404);
+    exit();
+}
 if (isset($_SESSION["Administrator"])) {
     if ($_SESSION["Administrator"] === "Administrator") {
         if (isset($_GET["id"])) {

