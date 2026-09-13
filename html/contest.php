@@ -322,7 +322,7 @@ if (isset($_SESSION["studentID"])) {
                                                     $result = mysqli_stmt_get_result($stmt);
                                                     if (mysqli_num_rows($result) !== 0) {
                                                         while ($row = mysqli_fetch_assoc($result)) {
-                                                            if ($row["type"] === 2) {
+                                                            if ($row["type"] == 2) {
                                                                 if (true === true) {
                                                                     $resultA = mysqli_query($mysql_conn, "SELECT ContainerId FROM " . $ContestId . "_container WHERE studentid = \"" . $studentid . "\" AND type = 2 AND TrueFalse = 1;");
                                                                     if (mysqli_num_rows($resultA) != 0) {
@@ -349,7 +349,7 @@ if (isset($_SESSION["studentID"])) {
                                                                     mysqli_stmt_execute($stmta);
                                                                 }
                                                             }
-                                                            else if ($row["type"] === 3) {
+                                                            else if ($row["type"] == 3) {
                                                                 mysqli_query($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContestId = \"" . $id . "\";");
                                                                 if (true === true) {
                                                                     $response = httpGet($row["flag"] . "/start");
