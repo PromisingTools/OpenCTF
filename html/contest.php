@@ -157,12 +157,27 @@ if (!isset($_COOKIE[session_name()])) {
 }
 
 session_start(['cookie_httponly' => true]);
+function csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function csrf_verify() {
+    $expected = $_SESSION['csrf_token'] ?? '';
+    $actual = $_POST['csrf_token'] ?? '';
+    if ($expected === '' || $actual === '' || !hash_equals($expected, $actual)) {
+        http_response_code(403);
+        exit('CSRF 校验失败');
+    }
+}
 if (isset($_SESSION["studentID"])) {
     $studentid = $_SESSION["studentID"];
     if(ctype_digit($studentid)) {
         include "../config.php";
-        $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-        mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+        $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+        mysqli_set_charset($mysql_conn, 'utf8mb4');
         $response = mysqli_query($mysql_conn, "select id, username, email from user where id = \"" . $studentid . "\";");
         if (mysqli_num_rows($response) === 0) {
             echo "None";
@@ -181,6 +196,7 @@ if (isset($_SESSION["studentID"])) {
                         if (strtotime($Contest_Start_Time) <= $Current_Time) {
                             if (strtotime($Contest_End_Time) >= $Current_Time) {
                                 if (isset($_POST["func"])) {
+                                    csrf_verify();
                                     $func = $_POST["func"];
                                     if ($func === "ll") {
                                         if (isset($_POST["json"])) {
@@ -625,6 +641,7 @@ if (isset($_SESSION["studentID"])) {
 </div>
 
 <script>
+    var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
     (() => {
        function ban() {
            setInterval(() => { debugger; }, 50);
@@ -637,7 +654,10 @@ if (isset($_SESSION["studentID"])) {
 
     function Refresh() {location.reload();}
 
-    function Confirm() {document.getElementById("captcha-modal").style.display = "flex";}
+    function Confirm() {
+        var answer = document.getElementById('practical-answer').value.trim();
+        if (!answer) { showToast('请输入答案', 'error'); return; }
+        document.getElementById("captcha-modal").style.display = "flex";}
 
     var currentUser = { username: '<?php if(true) {$rows = mysqli_fetch_assoc($response); echo $rows["username"];} ?>' };
     var contestInfo = {
@@ -709,7 +729,7 @@ if (isset($_SESSION["studentID"])) {
             contentEl.textContent = '暂无公告';
             contentEl.className = 'empty';
         };
-        xhr.send("func=GetMessage&id=" + contestInfo.id);
+        xhr.send("func=GetMessage&id=" + contestInfo.id + "&csrf_token=" + CSRF_TOKEN);
     }
 
     function loadChallenges() {
@@ -855,7 +875,7 @@ if (isset($_SESSION["studentID"])) {
                             }
                         };
 
-                        xhr.send("func=StartContaner&id=" + practicalChallenges[i].id);
+                        xhr.send("func=StartContaner&id=" + practicalChallenges[i].id + "&csrf_token=" + CSRF_TOKEN);
                     }
                 }
                 else {
@@ -874,7 +894,7 @@ if (isset($_SESSION["studentID"])) {
                             showToast('提交失败请重试', 'error');
                         }
                     };
-                    xhr.send("func=StartContaner&id=" + practicalChallenges[i].id);
+                    xhr.send("func=StartContaner&id=" + practicalChallenges[i].id + "&csrf_token=" + CSRF_TOKEN);
                 }
             }
         }
@@ -951,7 +971,7 @@ if (isset($_SESSION["studentID"])) {
             setTimeout(() => {location.reload(); }, 650);
         };
         xhr.onerror = function() { showToast('网络错误，提交失败', 'error'); };
-        xhr.send("func=ll&json=" + JSON.stringify(payload));
+        xhr.send("func=ll&json=" + JSON.stringify(payload) + "&csrf_token=" + CSRF_TOKEN);
     }
 
     function openPracticalModal(id) {
@@ -1010,7 +1030,7 @@ if (isset($_SESSION["studentID"])) {
             setTimeout(() => {location.reload()}, 1500);
         };
 
-        xhr.send("func=sc&id=" + challenge.id + "&answer=" + answer + "&verify_code=" + document.getElementById("captcha-input").value);
+        xhr.send("func=sc&id=" + challenge.id + "&answer=" + answer + "&verify_code=" + document.getElementById("captcha-input").value + "&csrf_token=" + CSRF_TOKEN);
     }
 
     function showToast(msg, type) {

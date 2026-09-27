@@ -5,14 +5,30 @@ if (!isset($_COOKIE[session_name()])) {
     echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit();
 }
 session_start(['cookie_httponly' => true]);
+function csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function csrf_verify() {
+    $expected = $_SESSION['csrf_token'] ?? '';
+    $actual = $_POST['csrf_token'] ?? '';
+    if ($expected === '' || $actual === '' || !hash_equals($expected, $actual)) {
+        http_response_code(403);
+        exit('CSRF 校验失败');
+    }
+}
 
 if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Administrator") {
     if (isset($_POST["func"])) {
+        csrf_verify();
         $func = $_POST["func"];
         if($func === "userlist") {
             include "../config.php";
-            $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-            mysqli_query($mysql_conn, "use ". $DataBase["db_name"]);
+            $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+            mysqli_set_charset($mysql_conn, 'utf8mb4');
             $response = mysqli_query($mysql_conn, "select username,id,email from user;");
             if (mysqli_num_rows($response) === 0) {
                 echo "None";
@@ -33,12 +49,12 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
         else if ($func === "changepassword") {
             include "../config.php";
             $studentid = htmlspecialchars($_POST["studentid"], ENT_QUOTES);
-            $password = htmlspecialchars($_POST["password"], ENT_QUOTES);
+            $password = $_POST["password"];
             if (ctype_digit($studentid) === true) {
-                $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_query($mysql_conn, "use ". $DataBase["db_name"]);
+                $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                mysqli_set_charset($mysql_conn, 'utf8mb4');
                 $stmt = mysqli_prepare($mysql_conn, "UPDATE user set password = ? where id = ?");
-                $password = hash("sha512", $password);
+                $password = password_hash($password, PASSWORD_DEFAULT);
                 mysqli_stmt_bind_param($stmt, 'ss', $password, $studentid);
                 mysqli_stmt_execute($stmt);
             }
@@ -48,8 +64,8 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
             include "../config.php";
             $studentid = htmlspecialchars($_POST["studentid"], ENT_QUOTES);
             if (ctype_digit($studentid) === true) {
-                $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_query($mysql_conn, "use ". $DataBase["db_name"]);
+                $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                mysqli_set_charset($mysql_conn, 'utf8mb4');
                 $stmt = mysqli_prepare($mysql_conn, "DELETE FROM user WHERE id = ?");
                 mysqli_stmt_bind_param($stmt, 's', $studentid);
                 mysqli_stmt_execute($stmt);
@@ -65,8 +81,8 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
             $id = hash("md5", $cmtnname);
 
             if(strtotime($start_time) <= strtotime($end_time)) {
-                $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+                $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                mysqli_set_charset($mysql_conn, 'utf8mb4');
                 
                 $result = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $id . "\";");
                 if (mysqli_num_rows($result) === 0) {
@@ -88,8 +104,8 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
         }
         else if ($func === "CompetitionList") {
             include "../config.php";
-            $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-            mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+            $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+            mysqli_set_charset($mysql_conn, 'utf8mb4');
             $result = mysqli_query($mysql_conn, "select id, name, start_time, end_time from cmtn;");
             if (mysqli_num_rows($result) === 0) {
                 echo "None";
@@ -112,8 +128,8 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                 $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
                 
                 if (ctype_xdigit($id)) {
-                    $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                    mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+                    $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                    mysqli_set_charset($mysql_conn, 'utf8mb4');
 
                     $result = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $id . "\";");
 
@@ -153,8 +169,8 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                     echo "JSON 解析错误";
                     exit();
                 }
-                $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+                $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                mysqli_set_charset($mysql_conn, 'utf8mb4');
 
                 if (ctype_xdigit($id)) {
                     $result = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $id . "\";");
@@ -220,8 +236,8 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                 $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
                 if (ctype_xdigit($id)) {
                     include "../config.php";
-                    $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                    mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+                    $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                    mysqli_set_charset($mysql_conn, 'utf8mb4');
 
                     $string = "{";
                     $result = mysqli_query($mysql_conn, "SELECT id, optionA, optionB, optionC, optionD, correct, stem, score FROM " . $id . "_ll;");
@@ -272,8 +288,8 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
 
                     if (ctype_xdigit($id)) {
                         include "../config.php";
-                        $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                        mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+                        $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                        mysqli_set_charset($mysql_conn, 'utf8mb4');
 
                         $stmt = mysqli_prepare($mysql_conn, "update cmtn set message = ? where id = ? ;");
                         mysqli_stmt_bind_param($stmt, 'ss', $content, $id);
@@ -289,8 +305,8 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                 $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
                 if (ctype_xdigit($id)) {
                     include "../config.php";
-                    $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                    mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+                    $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                    mysqli_set_charset($mysql_conn, 'utf8mb4');
                     $stmt = mysqli_prepare($mysql_conn, "select message from cmtn where id = ? ;");
                     mysqli_stmt_bind_param($stmt, 's', $id);
                     mysqli_stmt_execute($stmt);
@@ -633,6 +649,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
 </div>
 
 <script>
+    var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
     var users = [];
     var contests = [];
     var editingContestId = null;
@@ -693,7 +710,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
             users = [];
             renderUsers();
         };
-        xhr.send("func=userlist");
+        xhr.send("func=userlist&csrf_token=" + CSRF_TOKEN);
     }
 
     function renderUsers() {
@@ -736,7 +753,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
                 showToast(res.message || '修改失败', 'error');
             }
         };
-        xhr.send("studentid=" + userId + "&password=" + newPwd + "&func=changepassword");
+        xhr.send("studentid=" + userId + "&password=" + newPwd + "&func=changepassword&csrf_token=" + CSRF_TOKEN);
 
         showToast('用户 ' + userId +' 密码已更新', 'success');
     }
@@ -758,7 +775,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
                 showToast(res.message || '删除失败', 'error');
             }
         };
-        xhr.send("studentid=" + userId + "&func=deleteuser");
+        xhr.send("studentid=" + userId + "&func=deleteuser&csrf_token=" + CSRF_TOKEN);
 
         loadUsers();
         showToast('用户已删除', 'success');
@@ -784,7 +801,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
                 }
             }
         };
-        xhr.send("func=CompetitionList");
+        xhr.send("func=CompetitionList&csrf_token=" + CSRF_TOKEN);
     }
 
 
@@ -859,7 +876,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
             showToast('网络错误，无法创建比赛', 'error');
         };
         document.getElementById('create-contest-modal').classList.remove('active');
-        xhr.send(payload);
+        xhr.send(payload + "&csrf_token=" + CSRF_TOKEN);
     }
 
     function deleteContest(id) {
@@ -879,7 +896,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         xhr.onerror = function() {
             showToast('网络错误', 'error');
         };
-        xhr.send("id=" + id + "&func=CompetitionDelete");
+        xhr.send("id=" + id + "&func=CompetitionDelete&csrf_token=" + CSRF_TOKEN);
         loadContests();
         setTimeout(() => {
             location.reload()
@@ -909,7 +926,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         xhr.onerror = function() {
             showToast('网络错误', 'error');
         };
-        xhr.send("id=" + contestId + "&func=TitleList");
+        xhr.send("id=" + contestId + "&func=TitleList&csrf_token=" + CSRF_TOKEN);
 
     }
 
@@ -1085,7 +1102,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         xhr.onerror = function() {
             showToast('网络错误，无法保存题目', 'error');
         };
-        xhr.send("func=CompetitionSave&ll=" + JSON.stringify(theoryPayload) + "&sc=" + JSON.stringify(practicalPayload) + "&id=" + document.getElementById("debug").value);
+        xhr.send("func=CompetitionSave&ll=" + JSON.stringify(theoryPayload) + "&sc=" + JSON.stringify(practicalPayload) + "&id=" + document.getElementById("debug").value + "&csrf_token=" + CSRF_TOKEN);
     }
 
     function editAnnouncement(contestId) {
@@ -1109,7 +1126,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         xhr.onerror = function() {
             textarea.value = '';
         };
-        xhr.send("func=GetMessage&id=" + contestId);
+        xhr.send("func=GetMessage&id=" + contestId + "&csrf_token=" + CSRF_TOKEN);
     }
 
     function saveAnnouncement() {
@@ -1136,7 +1153,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         xhr.onerror = function() {
             showToast('网络错误，无法保存公告', 'error');
         };
-        xhr.send("func=EditMessage&id=" + contestId + "&content=" + window.btoa(encodeURIComponent(content)));
+        xhr.send("func=EditMessage&id=" + contestId + "&content=" + window.btoa(encodeURIComponent(content)) + "&csrf_token=" + CSRF_TOKEN);
     }
 
     function closeModal(modalId) {

@@ -10,8 +10,8 @@ if (isset($_SESSION["Administrator"])) {
         if (isset($_GET["id"])) {
             if (ctype_xdigit($_GET["id"])) {
                 include "../config.php";
-                $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_query($mysql_conn, "use ". $DataBase["db_name"]);
+                $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                mysqli_set_charset($mysql_conn, 'utf8mb4');
                 $response = mysqli_query($mysql_conn, "SELECT id, name FROM cmtn WHERE id = \"" . $_GET["id"] . "\";");
                 if (mysqli_num_rows($response) !== 0) {
 ?>

@@ -6,20 +6,41 @@ if (!isset($_COOKIE[session_name()])) {
     exit();
 }
 session_start(['cookie_httponly' => true]);
+function csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function csrf_verify() {
+    $expected = $_SESSION['csrf_token'] ?? '';
+    $actual = $_POST['csrf_token'] ?? '';
+    if ($expected === '' || $actual === '' || !hash_equals($expected, $actual)) {
+        http_response_code(403);
+        exit('CSRF 校验失败');
+    }
+}
 if (isset($_SESSION["studentID"])) {
     $studentid = $_SESSION["studentID"];
     if(ctype_digit($studentid)) {
         include "../config.php";
-        $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-        mysqli_query($mysql_conn, "use ". $DataBase["db_name"] . ";");
+        $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+        mysqli_set_charset($mysql_conn, 'utf8mb4');
         $response = mysqli_query($mysql_conn, "select id, username, email from user where id = \"" . $studentid . "\";");
         if (mysqli_num_rows($response) === 0) {
             echo "None";
         } else {
 
             if (isset($_POST["status"])) {
+                csrf_verify();
                 $status = $_POST["status"];
                 if ($status === "Change") {
+                    if (strpos($_POST['username'] ?? '', "\\") !== false || strpos($_POST['username'] ?? '', "/") !== false ||
+                        strpos($_POST['email'] ?? '', "\\") !== false || strpos($_POST['email'] ?? '', "/") !== false) {
+                        http_response_code(400);
+                        exit("用户名或邮箱不能包含斜杠或反斜杠");
+                    }
                     if (isset($_POST["email"])) {
                         $email = htmlspecialchars($_POST['email'], ENT_QUOTES);
                         $stmt = mysqli_prepare($mysql_conn, "UPDATE user set email = ? where id = ?");
@@ -28,9 +49,8 @@ if (isset($_SESSION["studentID"])) {
                     }
 
                     if (isset($_POST["password"])) {
-                        $password = htmlspecialchars($_POST["password"], ENT_QUOTES);
+                        $password = password_hash($_POST["password"], PASSWORD_DEFAULT);
                         $stmt = mysqli_prepare($mysql_conn, "UPDATE user set password = ? where id = ?");
-                        $password = hash("sha512", $password);
                         mysqli_stmt_bind_param($stmt, 'ss', $password, $studentid);
                         mysqli_stmt_execute($stmt);
                     }
@@ -270,6 +290,7 @@ if (isset($_SESSION["studentID"])) {
     </div>
 
     <script>
+        var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
         (() => {
             function ban() {
                 setInterval(() => { debugger; }, 50);
@@ -310,7 +331,7 @@ if (isset($_SESSION["studentID"])) {
             xhr.open('POST', '/homepage.php');
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 
-            xhr.send("status=ContestList");
+            xhr.send("status=ContestList&csrf_token=" + CSRF_TOKEN);
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     if (xhr.responseText === "None") {
@@ -419,7 +440,7 @@ if (isset($_SESSION["studentID"])) {
                 }
                     
             };
-            xhr.send("status=RankList&id=" + contestId);
+            xhr.send("status=RankList&id=" + contestId + "&csrf_token=" + CSRF_TOKEN);
             
 
             
@@ -483,7 +504,7 @@ if (isset($_SESSION["studentID"])) {
             xhr.onerror = function() {
                 showToast('网络错误，无法保存题目', 'error');
             };
-            xhr.send(string);
+            xhr.send(string + "&csrf_token=" + CSRF_TOKEN);
             setTimeout(() => {location.reload();}, 350);
         }
 

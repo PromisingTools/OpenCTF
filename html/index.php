@@ -1,6 +1,21 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com Hello */
 session_start(['cookie_httponly' => true]);session_regenerate_id(true);header('Cache-Control: no-cache, no-store, must-revalidate');header('Pragma: no-cache');header('Expires: 0');
+function csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function csrf_verify() {
+    $expected = $_SESSION['csrf_token'] ?? '';
+    $actual = $_POST['csrf_token'] ?? '';
+    if ($expected === '' || $actual === '' || !hash_equals($expected, $actual)) {
+        http_response_code(403);
+        exit('CSRF 校验失败');
+    }
+}
 function GenerateImage($code) {
     $image = imagecreatetruecolor(120, 40);
 
@@ -59,6 +74,7 @@ if(isset($_GET["img"])) {
 
 }
 else if (isset($_POST["status"])) {
+    csrf_verify();
     $status = $_POST["status"];
     if ($status === "Admin") {
         if (isset($_POST["username"]) && isset($_POST["password"]) && isset($_POST["code"])) {
@@ -85,15 +101,14 @@ else if (isset($_POST["status"])) {
     else if ($status === "Login") {
         include "../config.php";
         if (isset($_POST["studentid"]) && isset($_POST["password"]) && isset($_POST["code"])) {
-            $password = htmlspecialchars($_POST["password"], ENT_QUOTES);;
+            $password = $_POST["password"];
             $studentid = htmlspecialchars($_POST["studentid"], ENT_QUOTES);
             if ($_SESSION["code"] === $_POST["code"]) {
                 $_SESSION["code"] = RandomCode(8);
                 if (ctype_digit($studentid) === true) {
-                    $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                    $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
                     if ($mysql_conn) {
                         mysqli_set_charset($mysql_conn, 'utf8mb4');
-                        mysqli_query($mysql_conn, "use " . $DataBase["db_name"]);
                         $stmt = mysqli_prepare($mysql_conn, "SELECT password FROM user WHERE id = ?");
                         mysqli_stmt_bind_param($stmt, 's', $studentid);
                         mysqli_stmt_execute($stmt);
@@ -103,8 +118,7 @@ else if (isset($_POST["status"])) {
                             
                         } else {
                             while ($row = mysqli_fetch_assoc($result)) {
-                                $password = hash("sha512", $password);
-                                if ($password === $row["password"]) {
+                                if (password_verify($password, $row["password"])) {
                                     $_SESSION["studentID"] = $studentid;
                                     echo "alert(\"登录成功\");location.href = \"/homepage.php\";";
                                 }
@@ -136,23 +150,26 @@ else if (isset($_POST["status"])) {
         include "../config.php";
         if (isset($_POST["username"]) && isset($_POST["password"]) && isset($_POST["studentid"]) && isset($_POST["email"]) && isset($_POST["code"])) {
             $username = htmlspecialchars($_POST["username"], ENT_QUOTES);
-            $password = htmlspecialchars($_POST["password"], ENT_QUOTES);
+            $password = $_POST["password"];
             $studentid = htmlspecialchars($_POST["studentid"], ENT_QUOTES);
             $email = htmlspecialchars($_POST["email"], ENT_QUOTES);
+            if (strpos($username, "\\") !== false || strpos($username, "/") !== false || strpos($email, "\\") !== false || strpos($email, "/") !== false) {
+                echo "alert(\"用户名或邮箱不能包含斜杠或反斜杠\");location.reload();";
+                exit();
+            }
             if ($_SESSION["code"] === $_POST["code"]) {
                 $_SESSION["code"] = RandomCode(8);
                 if (ctype_digit($studentid) === true) {
-                    $mysql_conn = mysqli_connect($DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                    $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
                     if ($mysql_conn) {
                         mysqli_set_charset($mysql_conn, 'utf8mb4');
-                        mysqli_query($mysql_conn, "use " . $DataBase["db_name"]);
                         $stmt = mysqli_prepare($mysql_conn, "SELECT id, username, password, email FROM user WHERE id = ?");
                         mysqli_stmt_bind_param($stmt, 's', $studentid);
                         mysqli_stmt_execute($stmt);
                         $result = mysqli_stmt_get_result($stmt);
                         if (mysqli_num_rows($result) === 0) {
                             $stmt = mysqli_prepare($mysql_conn, "insert into user (id, username, password, email) value (? ,?, ?, ?)");
-                            $password = hash("sha512", $password);
+                            $password = password_hash($password, PASSWORD_DEFAULT);
                             mysqli_stmt_bind_param($stmt, 'ssss', $studentid, $username, $password, $email);
                             mysqli_stmt_execute($stmt);
                             echo "alert(\"注册成功，请登录\");location.reload();";
@@ -493,6 +510,7 @@ $_SESSION["verify"] = hash("sha512", RandomCode(8));
 </div>
 
 <script>
+    var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
     (() => {
         function ban() {
             setInterval(() => { debugger; }, 50);
@@ -562,7 +580,7 @@ $_SESSION["verify"] = hash("sha512", RandomCode(8));
 
     function sendRequestWithCaptcha(params) {
         showCaptchaModal().then(captcha => {
-            const fullParams = params + '&code=' + encodeURIComponent(captcha);
+            const fullParams = params + '&code=' + encodeURIComponent(captcha) + '&csrf_token=' + encodeURIComponent(CSRF_TOKEN);
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/index.php');
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
