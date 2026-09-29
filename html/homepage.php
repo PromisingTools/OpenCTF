@@ -81,8 +81,13 @@ if (isset($_SESSION["studentID"])) {
                     if (isset($_POST["id"])) {
                         $id = $_POST["id"];
                         if (ctype_xdigit($id)) {
+                            $contest_check = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $id . "\";");
+                            if (!$contest_check || mysqli_num_rows($contest_check) === 0) {
+                                echo "None";
+                                exit();
+                            }
                             $result = mysqli_query($mysql_conn, "SELECT studentid, score FROM " . $id . "_pm;");
-                            if (mysqli_num_rows($result) === 0) {
+                            if (!$result || mysqli_num_rows($result) === 0) {
                                 echo "None";
                                 exit();
                             }
