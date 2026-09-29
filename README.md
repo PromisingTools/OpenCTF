@@ -1,4 +1,4 @@
-Powered By c4e3bac3@foxmail.com Hello 
+# Powered By c4e3bac3@foxmail.com Hello 
 
 https://blog.csdn.net/khchgkhbdfxk/article/details/161870863
 
@@ -14,23 +14,28 @@ https://blog.csdn.net/khchgkhbdfxk/article/details/161870863
 
 数据库记得改为 InnoDB 和 UTF8MB4
 
+需要给 $DataBase 里设置的 db_name 数据库 给予 SELECT,DELETE,UPDATE,INSERT,DROP,CREATE 权限
+
+---
+
 [mysqld]
 
 default-storage-engine = InnoDB
 
 character-set-server = utf8mb4
 
+---
 
 记得在 PHP 插件中开启 CURL 功能
 
-
+---
 需要安装 php-gd 模块
 
 sudo apt install php-gd
 
 sudo yum install php-gd
 
-
+---
 
 
 
@@ -41,7 +46,7 @@ create table user (id char(255) PRIMARY KEY, username char(255), password char(2
 create table cmtn (id char(255) PRIMARY KEY, name char(255), start_time char(255), end_time char(255), message varchar(10000));
 
 
-
+---
 
 接下来讲解目录结构
 
