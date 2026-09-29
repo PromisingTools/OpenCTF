@@ -15,7 +15,10 @@ $DataBase = [
 
 date_default_timezone_set('Asia/Shanghai');
 
-/* 有限制动态容器存活时长（秒），25 分钟 */
+/*
+有限制动态容器存活时长（秒），25 分钟
+单位是秒
+*/
 define("CONTAINER_TTL", 1500);
 
 
