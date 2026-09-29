@@ -42,6 +42,7 @@ define("CONTAINER_TTL", 1500);
     create table user (id char(255) PRIMARY KEY, username char(255), password char(255), email char(255));
     create table cmtn (id char(255) PRIMARY KEY, name char(255), start_time char(255), end_time char(255), message varchar(10000));
 
+    需要给 $DataBase 里设置的 db_name 数据库 给予 SELECT,DELETE,UPDATE,INSERT,DROP,CREATE 权限
     
     实操题扣分规则：
         第一个做对题目的分数为 附加分 + 基础分。
