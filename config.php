@@ -15,6 +15,9 @@ $DataBase = [
 
 date_default_timezone_set('Asia/Shanghai');
 
+/* 有限制动态容器存活时长（秒），25 分钟 */
+define("CONTAINER_TTL", 1500);
+
 
 /*
     sudo apt install php-gd

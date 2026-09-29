@@ -12,6 +12,16 @@ if (isset($_SESSION["Administrator"])) {
                 include "../config.php";
                 $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
                 mysqli_set_charset($mysql_conn, 'utf8mb4');
+                $cleanup = mysqli_query($mysql_conn, "SELECT ContainerId, time FROM " . $_GET["id"] . "_container WHERE TrueFalse = 1 AND type = 2;");
+                if ($cleanup && mysqli_num_rows($cleanup) !== 0) {
+                    while ($rowC = mysqli_fetch_assoc($cleanup)) {
+                        if (time() - intval($rowC["time"]) >= CONTAINER_TTL) {
+                            $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE " . $_GET["id"] . "_container SET TrueFalse = 0 WHERE ContainerId = ? AND TrueFalse = 1;");
+                            mysqli_stmt_bind_param($stmt_stop, 's', $rowC["ContainerId"]);
+                            mysqli_stmt_execute($stmt_stop);
+                        }
+                    }
+                }
                 $response = mysqli_query($mysql_conn, "SELECT id, name FROM cmtn WHERE id = \"" . $_GET["id"] . "\";");
                 if (mysqli_num_rows($response) !== 0) {
 ?>
@@ -135,7 +145,7 @@ if (isset($_SESSION["Administrator"])) {
                                '<td class="score">' + user.score + '</td>';
                 tbody.appendChild(tr);
             }
-            setTimeout(() => {location.reload();}, 1500);
+            setTimeout(() => {location.reload();}, 2500);
         }
 
         loadRanking();

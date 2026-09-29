@@ -259,7 +259,7 @@ if (isset($_SESSION["studentID"])) {
                                                     if (isset($_POST["verify_code"])) {
                                                         if ($_POST["verify_code"] === $_SESSION["code"]) {
                                                             $TitleID = $_POST["id"];
-                                                            $Answer = htmlspecialchars($_POST["answer"], ENT_QUOTES);
+                                                            $Answer = $_POST["answer"];
                                                             $resultC = mysqli_query($mysql_conn, 'SELECT TitleID FROM ' . $ContestId . ' where TitleID="' . $TitleID . '" AND studentid="' . $studentid . '";');
                                                             if (mysqli_num_rows($resultC) === 0) {
                                                                 $resultA = mysqli_query($mysql_conn, "SELECT id, flag, add_score, base_score, type FROM " . $ContestId . "_sc WHERE id = \"" . $TitleID . "\";");
@@ -279,7 +279,12 @@ if (isset($_SESSION["studentID"])) {
                                                                         }
                                                                     }
                                                                     else {
-                                                                        $resultD = mysqli_query($mysql_conn, "SELECT answer FROM " . $ContestId . "_container WHERE TrueFalse = 1 AND studentid = \"" . $studentid . "\" AND ContestId = \"" . $TitleID . "\";");
+                                                                        $ttl_condition = "";
+                                                                        if ($row_a["type"] == 2) {
+                                                                            $ttl_limit = time() - CONTAINER_TTL;
+                                                                            $ttl_condition = " AND CAST(time AS UNSIGNED) >= " . $ttl_limit;
+                                                                        }
+                                                                        $resultD = mysqli_query($mysql_conn, "SELECT answer FROM " . $ContestId . "_container WHERE TrueFalse = 1 AND studentid = \"" . $studentid . "\" AND ContestId = \"" . $TitleID . "\"" . $ttl_condition . ";");
                                                                         if (mysqli_num_rows($resultD) !== 0) {
                                                                             $row_c = mysqli_fetch_assoc($resultD);
                                                                             if ($Answer === $row_c["answer"]) {
@@ -327,10 +332,21 @@ if (isset($_SESSION["studentID"])) {
                                         }
                                         exit();
                                     }
-                                    else if ($func === "StartContaner") {
+                                    else if ($func === "StartContainer") {
                                         if (isset($_POST["id"])) {
                                             $id = $_POST["id"];
                                             if (ctype_xdigit($id)) {
+                                                $contest_check = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $ContestId . "\";");
+                                                if (mysqli_num_rows($contest_check) === 0) {
+                                                    exit();
+                                                }
+                                                $title_check = mysqli_prepare($mysql_conn, "SELECT id FROM " . $ContestId . "_sc WHERE id = ? ;");
+                                                mysqli_stmt_bind_param($title_check, 's', $id);
+                                                mysqli_stmt_execute($title_check);
+                                                $title_check_result = mysqli_stmt_get_result($title_check);
+                                                if (mysqli_num_rows($title_check_result) === 0) {
+                                                    exit();
+                                                }
                                                 if (time() - $_SESSION["visits"] > 15) {
                                                     $stmt = mysqli_prepare($mysql_conn, "select flag, type from " . $ContestId . "_sc where id = ? ;");
                                                     mysqli_stmt_bind_param($stmt, 's', $id);
@@ -344,7 +360,9 @@ if (isset($_SESSION["studentID"])) {
                                                                     if (mysqli_num_rows($resultA) != 0) {
                                                                         while ($row_a = mysqli_fetch_assoc($resultA)){
                                                                             httpPostForm($row["flag"] . "/stop", [$row_a["ContainerId"]]);
-                                                                            mysqli_query($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = \"" . $row_a["ContainerId"] . "\" AND TrueFalse = 1;");
+                                                                            $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = ? AND TrueFalse = 1;");
+                                                                            mysqli_stmt_bind_param($stmt_stop, 's', $row_a["ContainerId"]);
+                                                                            mysqli_stmt_execute($stmt_stop);
                                                                         }
                                                                     }
                                                                 }
@@ -400,6 +418,24 @@ if (isset($_SESSION["studentID"])) {
                                         exit();
                                     }
                                     
+                                    else if ($func === "StopContainer") {
+                                        if (isset($_POST["id"])) {
+                                            $id = $_POST["id"];
+                                            if (ctype_xdigit($id)) {
+                                                $resultA = mysqli_query($mysql_conn, "SELECT c.ContainerId, s.flag FROM " . $ContestId . "_container c JOIN " . $ContestId . "_sc s ON c.ContestId = s.id WHERE c.studentid = \"" . $studentid . "\" AND c.ContestId = \"" . $id . "\" AND c.type = 2 AND c.TrueFalse = 1;");
+                                                if (mysqli_num_rows($resultA) != 0) {
+                                                    while ($row_a = mysqli_fetch_assoc($resultA)) {
+                                                        httpPostForm($row_a["flag"] . "/stop", [$row_a["ContainerId"]]);
+                                                        $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = ? AND TrueFalse = 1;");
+                                                        mysqli_stmt_bind_param($stmt_stop, 's', $row_a["ContainerId"]);
+                                                        mysqli_stmt_execute($stmt_stop);
+                                                    }
+                                                }
+                                                echo "true";
+                                            }
+                                        }
+                                        exit();
+                                    }
                                     exit();
                                 }
                                 else if (isset($_GET["img"])) {
@@ -619,6 +655,8 @@ if (isset($_SESSION["studentID"])) {
         <h2 id="practical-title" style="margin-bottom:8px;"></h2>
         <p id="practical-desc" style="margin-bottom:16px; color:var(--muted);"></p>
         <button class="btn small" style="margin-bottom: 15px;" id="ContainerButton">启动容器</button>
+        <button class="btn small danger" style="margin-bottom: 15px; display:none;" id="StopContainerButton" onclick="stopContainer();">停止容器</button>
+        <div id="container-remain" style="margin-bottom:15px; color:var(--accent); display:none;"></div>
         
         <div class="field"><textarea id="practical-answer" placeholder="请输入答案"></textarea></div>
         <div id="practical-feedback" style="margin-top:8px; display:none;"></div>
@@ -642,6 +680,7 @@ if (isset($_SESSION["studentID"])) {
 
 <script>
     var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
+    var CONTAINER_TTL = <?php echo CONTAINER_TTL; ?>;
     (() => {
        function ban() {
            setInterval(() => { debugger; }, 50);
@@ -694,6 +733,7 @@ if (isset($_SESSION["studentID"])) {
     var currentTheoryIndex = 0;
     var currentPracticalId = null;
     var timerInterval = null;
+    var containerTimer = null;
 
     function init() {
         document.getElementById('display-username').textContent = currentUser.username;
@@ -779,13 +819,16 @@ if (isset($_SESSION["studentID"])) {
                             $tf = "true";
                         }
                         $message = "";
+                        $container_time = "0";
                         if (true == true) {
-                            $resultD = mysqli_query($mysql_conn, 'SELECT message FROM ' . $ContestId . '_container where TrueFalse = 1 AND studentid = "' . $studentid . '" AND ContestId = "' . $row["id"] . '";');
+                            $resultD = mysqli_query($mysql_conn, 'SELECT message, time FROM ' . $ContestId . '_container where TrueFalse = 1 AND studentid = "' . $studentid . '" AND ContestId = "' . $row["id"] . '";');
                             if (mysqli_num_rows($resultD) != 0) {
-                                $message = mysqli_fetch_assoc($resultD)["message"];
+                                $rowD = mysqli_fetch_assoc($resultD);
+                                $message = $rowD["message"];
+                                $container_time = $rowD["time"];
                             }
                         }
-                        $string = $string . '{id: "' . $row["id"] . '", name: "' . str_replace("\n", "<br/>", $row["name"]) . '", desc: "' . str_replace("\n", "<br/>", $row["timu"]) .  '", answer: undefined, completed: ' . $tf . ', score: ' . $score . ', answer_type: ' . $row["type"] . ', message: "' . $message . '"},';
+                        $string = $string . '{id: "' . $row["id"] . '", name: "' . str_replace("\n", "<br/>", $row["name"]) . '", desc: "' . str_replace("\n", "<br/>", $row["timu"]) .  '", answer: undefined, completed: ' . $tf . ', score: ' . $score . ', answer_type: ' . $row["type"] . ', message: "' . $message . '", container_time: "' . $container_time . '"},';
                     }
                     $string = substr($string, 0, -1);
                     $string = $string . "]";
@@ -875,7 +918,7 @@ if (isset($_SESSION["studentID"])) {
                             }
                         };
 
-                        xhr.send("func=StartContaner&id=" + practicalChallenges[i].id + "&csrf_token=" + CSRF_TOKEN);
+                        xhr.send("func=StartContainer&id=" + practicalChallenges[i].id + "&csrf_token=" + CSRF_TOKEN);
                     }
                 }
                 else {
@@ -894,7 +937,7 @@ if (isset($_SESSION["studentID"])) {
                             showToast('提交失败请重试', 'error');
                         }
                     };
-                    xhr.send("func=StartContaner&id=" + practicalChallenges[i].id + "&csrf_token=" + CSRF_TOKEN);
+                    xhr.send("func=StartContainer&id=" + practicalChallenges[i].id + "&csrf_token=" + CSRF_TOKEN);
                 }
             }
         }
@@ -986,16 +1029,73 @@ if (isset($_SESSION["studentID"])) {
         document.getElementById('practical-answer').innerHTML = '';
         document.getElementById('practical-feedback').style.display = 'none';
         document.getElementById('practical-modal').classList.add('active');
+        var startBtn = document.getElementById("ContainerButton");
+        var stopBtn = document.getElementById("StopContainerButton");
+        var remainEl = document.getElementById("container-remain");
+        stopBtn.style.display = "none";
+        remainEl.style.display = "none";
         if (challenge.answer_type === 1) {
-            document.getElementById("ContainerButton").style.display = "none";
-            document.getElementById('ContainerButton').setAttribute('onclick', 'startContainer("' + challenge.id + '");');
+            startBtn.style.display = "none";
         }
         else {
-            document.getElementById("ContainerButton").style.display = "block";
-            document.getElementById('ContainerButton').setAttribute('onclick', 'startContainer("' + challenge.id + '");');
+            startBtn.style.display = "block";
+            startBtn.setAttribute('onclick', 'startContainer("' + challenge.id + '");');
         }
+        clearInterval(containerTimer);
+        containerTimer = setInterval(updateContainerRemain, 1000);
+        updateContainerRemain();
     }
-    function closePracticalModal() { document.getElementById('practical-modal').classList.remove('active'); }
+    function updateContainerRemain() {
+        var el = document.getElementById('container-remain');
+        var stopBtn = document.getElementById('StopContainerButton');
+        var challenge = null;
+        for (var i=0; i<practicalChallenges.length; i++) {
+            if (practicalChallenges[i].id === currentPracticalId) { challenge = practicalChallenges[i]; break; }
+        }
+        if (!challenge || challenge.answer_type !== 2) {
+            el.style.display = "none";
+            return;
+        }
+        var t = parseInt(challenge.container_time, 10);
+        if (!t || t <= 0) {
+            el.style.display = "none";
+            stopBtn.style.display = "none";
+            return;
+        }
+        stopBtn.style.display = "block";
+        var remain = CONTAINER_TTL - (Math.floor(Date.now()/1000) - t);
+        if (remain <= 0) {
+            el.style.display = "block";
+            el.innerHTML = "⏳ 容器已过期，请重新启动容器";
+            return;
+        }
+        var m = Math.floor(remain / 60);
+        var s = remain % 60;
+        el.style.display = "block";
+        el.innerHTML = "⏳ 容器剩余时间：" + m + " 分 " + s + " 秒";
+    }
+    function stopContainer() {
+        var challenge = null;
+        for (var i=0; i<practicalChallenges.length; i++) {
+            if (practicalChallenges[i].id === currentPracticalId) { challenge = practicalChallenges[i]; break; }
+        }
+        if (!challenge) return;
+        if (!confirm("确定停止当前题目的容器吗？")) return;
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/contest.php?id=<?php echo $ContestId; ?>');
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                showToast("容器已停止", "success");
+                setTimeout(() => {location.reload()}, 1650);
+            } else {
+                showToast('停止失败请重试', 'error');
+            }
+        };
+        xhr.onerror = function() { showToast('网络错误，停止失败', 'error'); };
+        xhr.send("func=StopContainer&id=" + challenge.id + "&csrf_token=" + CSRF_TOKEN);
+    }
+    function closePracticalModal() { document.getElementById('practical-modal').classList.remove('active'); clearInterval(containerTimer); }
 
     function submitPractical() {
         var answer = document.getElementById('practical-answer').value.trim();
