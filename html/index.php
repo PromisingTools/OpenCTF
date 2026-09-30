@@ -49,7 +49,7 @@ else if (isset($_POST["status"])) {
                         mysqli_stmt_execute($stmt);
                         $result = mysqli_stmt_get_result($stmt);
                         if (mysqli_num_rows($result) === 0) {
-                            echo "alert(\"登录失败\");";
+                            echo "alert(\"登录失败\");location.reload();";
                             
                         } else {
                             while ($row = mysqli_fetch_assoc($result)) {
