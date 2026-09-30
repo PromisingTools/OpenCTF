@@ -9,9 +9,8 @@ if (isset($_SESSION["Administrator"])) {
     if ($_SESSION["Administrator"] === "Administrator") {
         if (isset($_GET["id"])) {
             if (ctype_xdigit($_GET["id"])) {
-                include "../config.php";
-                $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_set_charset($mysql_conn, 'utf8mb4');
+                include_once "../config.php";
+                $mysql_conn = db_connect();
                 $cleanup = mysqli_query($mysql_conn, "SELECT ContainerId, time FROM " . $_GET["id"] . "_container WHERE TrueFalse = 1 AND type = 2;");
                 if ($cleanup && mysqli_num_rows($cleanup) !== 0) {
                     while ($rowC = mysqli_fetch_assoc($cleanup)) {
@@ -101,6 +100,7 @@ if (isset($_SESSION["Administrator"])) {
                 <thead>
                     <tr>
                         <th>名次</th>
+                        <th>学号</th>
                         <th>用户名</th>
                         <th>分数</th>
                     </tr>
@@ -114,15 +114,11 @@ if (isset($_SESSION["Administrator"])) {
         function loadRanking() {
             var mockData = [
 <?php
-        $resultA = mysqli_query($mysql_conn, "SELECT score, studentid FROM " . $_GET["id"] . "_pm;");
+        $resultA = mysqli_query($mysql_conn, "SELECT p.score, p.studentid, u.username FROM " . $_GET["id"] . "_pm p JOIN user u ON u.id = p.studentid;");
         if (mysqli_num_rows($resultA) !== 0) {
             $string = "";
             while($rowA = mysqli_fetch_assoc($resultA)) {
-                $resultB = mysqli_query($mysql_conn, "SELECT username, id FROM user WHERE id = \"" . $rowA["studentid"] . "\";");
-                if (mysqli_num_rows($resultB) !== 0) {
-                    $rowB = mysqli_fetch_assoc($resultB);
-                    $string = $string . "{username: '" . $rowB["username"] . "', score: " . $rowA["score"] . "},";
-                }
+                $string = $string . "{studentid: '" . $rowA["studentid"] . "', username: '" . $rowA["username"] . "', score: " . $rowA["score"] . "},";
             }
             $string = substr($string, 0, -1);
             echo $string;
@@ -141,6 +137,7 @@ if (isset($_SESSION["Administrator"])) {
                 var user = mockData[i];
                 var tr = document.createElement('tr');
                 tr.innerHTML = '<td class="rank">' + (i + 1) + '</td>' +
+                               '<td>' + user.studentid + '</td>' +
                                '<td class="user">' + user.username + '</td>' +
                                '<td class="score">' + user.score + '</td>';
                 tbody.appendChild(tr);
@@ -151,8 +148,8 @@ if (isset($_SESSION["Administrator"])) {
         loadRanking();
         (() => {
             function ban() {
-                setInterval(() => { debugger; }, 50);
-                try { ban(); } catch(err) {}
+                const start = Date.now();
+                const timer = setInterval(() => { debugger; if (Date.now() - start > 10000) { clearInterval(timer); } }, 200);
             }
             ban();
         })();

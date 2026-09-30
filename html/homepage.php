@@ -1,32 +1,17 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com Hello */
+include_once "../config.php";
 if (!isset($_COOKIE[session_name()])) {
     http_response_code(404);
     echo "<br/><center><br/><h1> 道 阻 且 长 | 行 则 将 至 </h1></center>";
     exit();
 }
 session_start(['cookie_httponly' => true]);
-function csrf_token() {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
 
-function csrf_verify() {
-    $expected = $_SESSION['csrf_token'] ?? '';
-    $actual = $_POST['csrf_token'] ?? '';
-    if ($expected === '' || $actual === '' || !hash_equals($expected, $actual)) {
-        http_response_code(403);
-        exit('CSRF 校验失败');
-    }
-}
 if (isset($_SESSION["studentID"])) {
     $studentid = $_SESSION["studentID"];
     if(ctype_digit($studentid)) {
-        include "../config.php";
-        $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-        mysqli_set_charset($mysql_conn, 'utf8mb4');
+        $mysql_conn = db_connect();
         $response = mysqli_query($mysql_conn, "select id, username, email from user where id = \"" . $studentid . "\";");
         if (mysqli_num_rows($response) === 0) {
             echo "None";
@@ -41,20 +26,20 @@ if (isset($_SESSION["studentID"])) {
                         http_response_code(400);
                         exit("用户名或邮箱不能包含斜杠或反斜杠");
                     }
-                    if (isset($_POST["email"])) {
+                    if (!empty($_POST["email"])) {
                         $email = htmlspecialchars($_POST['email'], ENT_QUOTES);
                         $stmt = mysqli_prepare($mysql_conn, "UPDATE user set email = ? where id = ?");
                         mysqli_stmt_bind_param($stmt, 'ss', $email, $studentid);
                         mysqli_stmt_execute($stmt);
                     }
 
-                    if (isset($_POST["password"])) {
+                    if (!empty($_POST["password"])) {
                         $password = password_hash($_POST["password"], PASSWORD_DEFAULT);
                         $stmt = mysqli_prepare($mysql_conn, "UPDATE user set password = ? where id = ?");
                         mysqli_stmt_bind_param($stmt, 'ss', $password, $studentid);
                         mysqli_stmt_execute($stmt);
                     }
-                    if (isset($_POST['username'])) {
+                    if (!empty($_POST['username'])) {
                         $username = htmlspecialchars($_POST['username'], ENT_QUOTES);
                         $stmt = mysqli_prepare($mysql_conn, "UPDATE user set username = ? where id = ?");
                         mysqli_stmt_bind_param($stmt, 'ss', $username, $studentid);
@@ -86,7 +71,7 @@ if (isset($_SESSION["studentID"])) {
                                 echo "None";
                                 exit();
                             }
-                            $result = mysqli_query($mysql_conn, "SELECT studentid, score FROM " . $id . "_pm;");
+                            $result = mysqli_query($mysql_conn, "SELECT p.studentid, p.score, u.username FROM " . $id . "_pm p LEFT JOIN user u ON u.id = p.studentid;");
                             if (!$result || mysqli_num_rows($result) === 0) {
                                 echo "None";
                                 exit();
@@ -94,9 +79,7 @@ if (isset($_SESSION["studentID"])) {
                             else {
                                 $string = "{\"data\": [";
                                 while ($row = mysqli_fetch_assoc($result)) {
-                                    $tmp = mysqli_query($mysql_conn, "SELECT username from user WHERE id = \"" . $row["studentid"] . "\";");
-                                    $rrooww = mysqli_fetch_assoc($tmp);
-                                    $string = $string . '{"username": "' . $rrooww["username"] . '", "score": "' . $row["score"] . '"},';
+                                    $string = $string . '{"studentid": "' . $row["studentid"] . '", "username": "' . $row["username"] . '", "score": "' . $row["score"] . '"},';
                                     
                                 }
                                 $string = substr($string, 0, -1);
@@ -288,7 +271,7 @@ if (isset($_SESSION["studentID"])) {
             <div class="section-title" id="ranking-title">排行榜</div>
             <div id="user-summary" style="margin-bottom:16px; font-size:0.9rem; color:var(--accent);"></div>
             <table>
-                <thead><tr><th>排名</th><th>用户名</th><th>分数</th></tr></thead>
+                <thead><tr><th>排名</th><th>学号</th><th>用户名</th><th>分数</th></tr></thead>
                 <tbody id="ranking-tbody"></tbody>
             </table>
         </div>
@@ -298,8 +281,8 @@ if (isset($_SESSION["studentID"])) {
         var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
         (() => {
             function ban() {
-                setInterval(() => { debugger; }, 50);
-                try { ban(); } catch(err) {}
+                const start = Date.now();
+                const timer = setInterval(() => { debugger; if (Date.now() - start > 10000) { clearInterval(timer); } }, 200);
             }
             ban();
         })();
@@ -415,6 +398,7 @@ if (isset($_SESSION["studentID"])) {
                         for (var i = 0; i < users.data.length; i++) {
                             ranking.push({
                                 rank: i + 1,
+                                studentid: users.data[i].studentid,
                                 username: users.data[i].username,
                                 score: users.data[i].score
                             });
@@ -426,7 +410,7 @@ if (isset($_SESSION["studentID"])) {
                         for (var j = 0; j < ranking.length; j++) {
                             var row = ranking[j];
                             var tr = document.createElement('tr');
-                            tr.innerHTML = '<td>' + ranking[j].rank + '</td><td>' + row.username + '</td><td>' + row.score + '</td>';
+                            tr.innerHTML = '<td>' + ranking[j].rank + '</td><td>' + row.studentid + '</td><td>' + row.username + '</td><td>' + row.score + '</td>';
                             tbody.appendChild(tr);
                         }
                         console.log(users.current);
@@ -491,7 +475,6 @@ if (isset($_SESSION["studentID"])) {
 
             currentUser.username = newUsername;
             currentUser.email = newEmail;
-
 
             var string = "email=" + newEmail + "&username=" + newUsername + "&password=" + newPassword + "&status=Change"
             var xhr = new XMLHttpRequest();

@@ -1,69 +1,7 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com Hello */
+include_once "../config.php";
 session_start(['cookie_httponly' => true]);session_regenerate_id(true);header('Cache-Control: no-cache, no-store, must-revalidate');header('Pragma: no-cache');header('Expires: 0');
-function csrf_token() {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
-
-function csrf_verify() {
-    $expected = $_SESSION['csrf_token'] ?? '';
-    $actual = $_POST['csrf_token'] ?? '';
-    if ($expected === '' || $actual === '' || !hash_equals($expected, $actual)) {
-        http_response_code(403);
-        exit('CSRF 校验失败');
-    }
-}
-function GenerateImage($code) {
-    $image = imagecreatetruecolor(120, 40);
-
-    $bgColor = imagecolorallocate($image, 243, 243, 243);
-    imagefill($image, 0, 0, $bgColor);
-
-    for ($i = 0; $i < 15; $i++) {
-        $lineColor = imagecolorallocate($image, mt_rand(100,200), mt_rand(100,200), mt_rand(100,200));
-        imageline($image, mt_rand(0, 120), mt_rand(0, 40), mt_rand(0, 120), mt_rand(0, 40), $lineColor);
-    }
-
-    for ($i = 0; $i < 200; $i++) {
-        $pixelColor = imagecolorallocate($image, mt_rand(50,150), mt_rand(50,150), mt_rand(50,150));
-        imagesetpixel($image, mt_rand(0, 120), mt_rand(0, 40), $pixelColor);
-    }
-
-    $fontSize = 135;
-    $fontWidth = imagefontwidth($fontSize);
-    $fontHeight = imagefontheight($fontSize);
-    
-    $textWidth = $fontWidth * strlen($code);
-    $x = (120 - $textWidth) / 2;
-    $y = (40 - $fontHeight) / 2;
-
-    for ($i = 0; $i < strlen($code); $i++) {
-        $charColor = imagecolorallocate($image, mt_rand(0,100), mt_rand(0,100), mt_rand(0,100));
-        $charX = $x + ($i * $fontWidth) + mt_rand(-1, 1);
-        $charY = $y + mt_rand(-2, 2);
-        imagestring($image, $fontSize, $charX, $charY, $code[$i], $charColor);
-    }
-
-    header('Content-Type: image/png');
-    imagepng($image);
-    imagedestroy($image);
-    return $code;
-
-}
-
-function RandomCode($len) {
-    $code = '';
-    $charset = '1234567890qazwsxedcrfvtgbyhnujmikolpQAZWSXEDCRFVTGBYHNUJMIKOLP';
-    $charsetLen = strlen($charset) - 1;
-    for ($i = 0; $i < $len; $i++) {
-        $code .= $charset[random_int(0, $charsetLen)];
-    }
-
-    return $code;
-}
 
 if(isset($_GET["img"])) {
     if ($_GET["img"] === $_SESSION["verify"]) {
@@ -80,7 +18,6 @@ else if (isset($_POST["status"])) {
         if (isset($_POST["username"]) && isset($_POST["password"]) && isset($_POST["code"])) {
             if ($_POST["code"] === $_SESSION["code"]) {
                 $_SESSION["code"] = RandomCode(8);
-                include "../config.php";
                 $username = $_POST["username"];
                 $password = $_POST["password"];
                 if ($username === $Administrator["Username"]) {
@@ -99,16 +36,14 @@ else if (isset($_POST["status"])) {
         
     }
     else if ($status === "Login") {
-        include "../config.php";
         if (isset($_POST["studentid"]) && isset($_POST["password"]) && isset($_POST["code"])) {
             $password = $_POST["password"];
             $studentid = htmlspecialchars($_POST["studentid"], ENT_QUOTES);
             if ($_SESSION["code"] === $_POST["code"]) {
                 $_SESSION["code"] = RandomCode(8);
                 if (ctype_digit($studentid) === true) {
-                    $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                    $mysql_conn = db_connect();
                     if ($mysql_conn) {
-                        mysqli_set_charset($mysql_conn, 'utf8mb4');
                         $stmt = mysqli_prepare($mysql_conn, "SELECT password FROM user WHERE id = ?");
                         mysqli_stmt_bind_param($stmt, 's', $studentid);
                         mysqli_stmt_execute($stmt);
@@ -147,7 +82,6 @@ else if (isset($_POST["status"])) {
 
     }
     else if ($status === "Register") {
-        include "../config.php";
         if (isset($_POST["username"]) && isset($_POST["password"]) && isset($_POST["studentid"]) && isset($_POST["email"]) && isset($_POST["code"])) {
             $username = htmlspecialchars($_POST["username"], ENT_QUOTES);
             $password = $_POST["password"];
@@ -160,9 +94,8 @@ else if (isset($_POST["status"])) {
             if ($_SESSION["code"] === $_POST["code"]) {
                 $_SESSION["code"] = RandomCode(8);
                 if (ctype_digit($studentid) === true) {
-                    $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
+                    $mysql_conn = db_connect();
                     if ($mysql_conn) {
-                        mysqli_set_charset($mysql_conn, 'utf8mb4');
                         $stmt = mysqli_prepare($mysql_conn, "SELECT id, username, password, email FROM user WHERE id = ?");
                         mysqli_stmt_bind_param($stmt, 's', $studentid);
                         mysqli_stmt_execute($stmt);
@@ -513,8 +446,8 @@ $_SESSION["verify"] = hash("sha512", RandomCode(8));
     var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
     (() => {
         function ban() {
-            setInterval(() => { debugger; }, 50);
-            try { ban(); } catch(err) {}
+            const start = Date.now();
+            const timer = setInterval(() => { debugger; if (Date.now() - start > 10000) { clearInterval(timer); } }, 200);
         }
         ban();
     })();

@@ -1,34 +1,18 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com  Hello */
+include_once "../config.php";
 if (!isset($_COOKIE[session_name()])) {
     http_response_code(404);
     echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit();
 }
 session_start(['cookie_httponly' => true]);
-function csrf_token() {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
-
-function csrf_verify() {
-    $expected = $_SESSION['csrf_token'] ?? '';
-    $actual = $_POST['csrf_token'] ?? '';
-    if ($expected === '' || $actual === '' || !hash_equals($expected, $actual)) {
-        http_response_code(403);
-        exit('CSRF 校验失败');
-    }
-}
 
 if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Administrator") {
     if (isset($_POST["func"])) {
         csrf_verify();
         $func = $_POST["func"];
         if($func === "userlist") {
-            include "../config.php";
-            $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-            mysqli_set_charset($mysql_conn, 'utf8mb4');
+            $mysql_conn = db_connect();
             $response = mysqli_query($mysql_conn, "select username,id,email from user;");
             if (mysqli_num_rows($response) === 0) {
                 echo "None";
@@ -47,12 +31,10 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
             exit();
         }
         else if ($func === "changepassword") {
-            include "../config.php";
             $studentid = htmlspecialchars($_POST["studentid"], ENT_QUOTES);
             $password = $_POST["password"];
             if (ctype_digit($studentid) === true) {
-                $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_set_charset($mysql_conn, 'utf8mb4');
+                $mysql_conn = db_connect();
                 $stmt = mysqli_prepare($mysql_conn, "UPDATE user set password = ? where id = ?");
                 $password = password_hash($password, PASSWORD_DEFAULT);
                 mysqli_stmt_bind_param($stmt, 'ss', $password, $studentid);
@@ -61,11 +43,9 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
             exit();
         }
         else if ($func === "deleteuser") {
-            include "../config.php";
             $studentid = htmlspecialchars($_POST["studentid"], ENT_QUOTES);
             if (ctype_digit($studentid) === true) {
-                $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_set_charset($mysql_conn, 'utf8mb4');
+                $mysql_conn = db_connect();
                 $stmt = mysqli_prepare($mysql_conn, "DELETE FROM user WHERE id = ?");
                 mysqli_stmt_bind_param($stmt, 's', $studentid);
                 mysqli_stmt_execute($stmt);
@@ -74,15 +54,13 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
             exit();
         }
         else if ($func === "CreateCompetition") {
-            include "../config.php";
             $cmtnname = htmlspecialchars($_POST["cmtnname"], ENT_QUOTES);
             $start_time = htmlspecialchars($_POST["start_time"], ENT_QUOTES);
             $end_time = htmlspecialchars($_POST["end_time"], ENT_QUOTES);
             $id = hash("md5", $cmtnname);
 
             if(strtotime($start_time) <= strtotime($end_time)) {
-                $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_set_charset($mysql_conn, 'utf8mb4');
+                $mysql_conn = db_connect();
                 
                 $result = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $id . "\";");
                 if (mysqli_num_rows($result) === 0) {
@@ -103,9 +81,7 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
 
         }
         else if ($func === "CompetitionList") {
-            include "../config.php";
-            $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-            mysqli_set_charset($mysql_conn, 'utf8mb4');
+            $mysql_conn = db_connect();
             $result = mysqli_query($mysql_conn, "select id, name, start_time, end_time from cmtn;");
             if (mysqli_num_rows($result) === 0) {
                 echo "None";
@@ -124,12 +100,10 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
         }
         else if ($func === "CompetitionDelete") {
             if (isset($_POST["id"])) {
-                include "../config.php";
                 $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
                 
                 if (ctype_xdigit($id)) {
-                    $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                    mysqli_set_charset($mysql_conn, 'utf8mb4');
+                    $mysql_conn = db_connect();
 
                     $result = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $id . "\";");
 
@@ -155,7 +129,6 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
         }
         else if ($func === "CompetitionSave") {
             if (isset($_POST["id"])) {
-                include "../config.php";
                 $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
                 $ll_json = $_POST["ll"];
                 $sc_json = $_POST["sc"];
@@ -169,8 +142,7 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                     echo "JSON 解析错误";
                     exit();
                 }
-                $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                mysqli_set_charset($mysql_conn, 'utf8mb4');
+                $mysql_conn = db_connect();
 
                 if (ctype_xdigit($id)) {
                     $result = mysqli_query($mysql_conn, "SELECT id FROM cmtn WHERE id = \"" . $id . "\";");
@@ -235,9 +207,7 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
             if (isset($_POST["id"])) {
                 $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
                 if (ctype_xdigit($id)) {
-                    include "../config.php";
-                    $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                    mysqli_set_charset($mysql_conn, 'utf8mb4');
+                    $mysql_conn = db_connect();
 
                     $string = "{";
                     $result = mysqli_query($mysql_conn, "SELECT id, optionA, optionB, optionC, optionD, correct, stem, score FROM " . $id . "_ll;");
@@ -287,9 +257,7 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                     $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
 
                     if (ctype_xdigit($id)) {
-                        include "../config.php";
-                        $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                        mysqli_set_charset($mysql_conn, 'utf8mb4');
+                        $mysql_conn = db_connect();
 
                         $stmt = mysqli_prepare($mysql_conn, "update cmtn set message = ? where id = ? ;");
                         mysqli_stmt_bind_param($stmt, 'ss', $content, $id);
@@ -304,9 +272,7 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
             if (isset($_POST["id"])) {
                 $id = htmlspecialchars($_POST["id"], ENT_QUOTES);
                 if (ctype_xdigit($id)) {
-                    include "../config.php";
-                    $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-                    mysqli_set_charset($mysql_conn, 'utf8mb4');
+                    $mysql_conn = db_connect();
                     $stmt = mysqli_prepare($mysql_conn, "select message from cmtn where id = ? ;");
                     mysqli_stmt_bind_param($stmt, 's', $id);
                     mysqli_stmt_execute($stmt);
@@ -803,7 +769,6 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         };
         xhr.send("func=CompetitionList&csrf_token=" + CSRF_TOKEN);
     }
-
 
     function renderContests() {
         var tbody = document.getElementById('contest-tbody');

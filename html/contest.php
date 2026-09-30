@@ -1,94 +1,7 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com Hello */
+include_once "../config.php";
 header('Cache-Control: no-cache, no-store, must-revalidate');header('Pragma: no-cache');header('Expires: 0');
-
-function httpGet($url, $headers = [], $timeout = 10) {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    if (!empty($headers)) {
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    }
-    
-    $response = curl_exec($ch);
-    curl_close($ch);
-
-    return $response;
-}
-
-function httpPostForm($url, $data, $headers = [], $timeout = 10) {
-    $postData = http_build_query($data);
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-    curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    
-    $defaultHeaders = ['Content-Type: application/x-www-form-urlencoded'];
-    $allHeaders = array_merge($defaultHeaders, $headers);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $allHeaders);
-    
-    $response = curl_exec($ch);
-    $errno = curl_errno($ch);
-    $error = curl_error($ch);
-    curl_close($ch);
-    
-    return $response;
-}
-
-function GenerateImage($code) {
-    $image = imagecreatetruecolor(120, 40);
-
-    $bgColor = imagecolorallocate($image, 243, 243, 243);
-    imagefill($image, 0, 0, $bgColor);
-
-    for ($i = 0; $i < 15; $i++) {
-        $lineColor = imagecolorallocate($image, mt_rand(100,200), mt_rand(100,200), mt_rand(100,200));
-        imageline($image, mt_rand(0, 120), mt_rand(0, 40), mt_rand(0, 120), mt_rand(0, 40), $lineColor);
-    }
-
-    for ($i = 0; $i < 200; $i++) {
-        $pixelColor = imagecolorallocate($image, mt_rand(50,150), mt_rand(50,150), mt_rand(50,150));
-        imagesetpixel($image, mt_rand(0, 120), mt_rand(0, 40), $pixelColor);
-    }
-
-    $fontSize = 135;
-    $fontWidth = imagefontwidth($fontSize);
-    $fontHeight = imagefontheight($fontSize);
-    
-    $textWidth = $fontWidth * strlen($code);
-    $x = (120 - $textWidth) / 2;
-    $y = (40 - $fontHeight) / 2;
-
-    for ($i = 0; $i < strlen($code); $i++) {
-        $charColor = imagecolorallocate($image, mt_rand(0,100), mt_rand(0,100), mt_rand(0,100));
-        $charX = $x + ($i * $fontWidth) + mt_rand(-1, 1);
-        $charY = $y + mt_rand(-2, 2);
-        imagestring($image, $fontSize, $charX, $charY, $code[$i], $charColor);
-    }
-
-    header('Content-Type: image/png');
-    imagepng($image);
-    imagedestroy($image);
-    return $code;
-
-}
-
-function RandomCode($len) {
-    $code = '';
-    $charset = '1234567890qazwsxedcrfvtgbyhnujmikolpQAZWSXEDCRFVTGBYHNUJMIKOLP';
-    $charsetLen = strlen($charset) - 1;
-    for ($i = 0; $i < $len; $i++) {
-        $code .= $charset[random_int(0, $charsetLen)];
-    }
-
-    return $code;
-}
 
 function checkIdMatch($jsona, $jsonb) {
     $arrA = json_decode($jsona, true);
@@ -147,7 +60,6 @@ function UpdateRank ($mysql, $studentid, $contestid) {
         }
     }
 
-
 }
 
 if (!isset($_COOKIE[session_name()])) {
@@ -157,27 +69,11 @@ if (!isset($_COOKIE[session_name()])) {
 }
 
 session_start(['cookie_httponly' => true]);
-function csrf_token() {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
 
-function csrf_verify() {
-    $expected = $_SESSION['csrf_token'] ?? '';
-    $actual = $_POST['csrf_token'] ?? '';
-    if ($expected === '' || $actual === '' || !hash_equals($expected, $actual)) {
-        http_response_code(403);
-        exit('CSRF 校验失败');
-    }
-}
 if (isset($_SESSION["studentID"])) {
     $studentid = $_SESSION["studentID"];
     if(ctype_digit($studentid)) {
-        include "../config.php";
-        $mysql_conn = mysqli_connect("p:" . $DataBase["host"], $DataBase["username"], $DataBase["password"], $DataBase["db_name"], $DataBase["port"]);
-        mysqli_set_charset($mysql_conn, 'utf8mb4');
+        $mysql_conn = db_connect();
         $response = mysqli_query($mysql_conn, "select id, username, email from user where id = \"" . $studentid . "\";");
         if (mysqli_num_rows($response) === 0) {
             echo "None";
@@ -355,51 +251,45 @@ if (isset($_SESSION["studentID"])) {
                                                     if (mysqli_num_rows($result) !== 0) {
                                                         while ($row = mysqli_fetch_assoc($result)) {
                                                             if ($row["type"] == 2) {
-                                                                if (true === true) {
-                                                                    $resultA = mysqli_query($mysql_conn, "SELECT ContainerId FROM " . $ContestId . "_container WHERE studentid = \"" . $studentid . "\" AND type = 2 AND TrueFalse = 1;");
-                                                                    if (mysqli_num_rows($resultA) != 0) {
-                                                                        while ($row_a = mysqli_fetch_assoc($resultA)){
-                                                                            httpPostForm($row["flag"] . "/stop", [$row_a["ContainerId"]]);
-                                                                            $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = ? AND TrueFalse = 1;");
-                                                                            mysqli_stmt_bind_param($stmt_stop, 's', $row_a["ContainerId"]);
-                                                                            mysqli_stmt_execute($stmt_stop);
-                                                                        }
+                                                                $resultA = mysqli_query($mysql_conn, "SELECT ContainerId FROM " . $ContestId . "_container WHERE studentid = \"" . $studentid . "\" AND type = 2 AND TrueFalse = 1;");
+                                                                if (mysqli_num_rows($resultA) != 0) {
+                                                                    while ($row_a = mysqli_fetch_assoc($resultA)){
+                                                                        httpPostForm($row["flag"] . "/stop", [$row_a["ContainerId"]]);
+                                                                        $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = ? AND TrueFalse = 1;");
+                                                                        mysqli_stmt_bind_param($stmt_stop, 's', $row_a["ContainerId"]);
+                                                                        mysqli_stmt_execute($stmt_stop);
                                                                     }
                                                                 }
                                                                 
-                                                                if (true === true) {
-                                                                    $response = httpGet($row["flag"] . "/start");
-                                                                    $json = json_decode($response, true);
-                                                                    $temp1 = strval(time());
-                                                                    $temp2 = strval($studentid);
-                                                                    $temp3 = strval($json["answer"]);
-                                                                    $temp4 = strval($id);
-                                                                    $temp5 = strval($json["ContainerID"]);
-                                                                    $temp6 = strval($json["message"]);
-                                                                    $temp7 = 1;
-                                                                    $temp8 = 2;
-                                                                    $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
-                                                                    mysqli_stmt_bind_param($stmta, 'ssssssii', $temp1, $temp2, $temp3, $temp4, $temp5, $temp6, $temp7, $temp8);
-                                                                    mysqli_stmt_execute($stmta);
-                                                                }
+                                                                $response = httpGet($row["flag"] . "/start");
+                                                                $json = json_decode($response, true);
+                                                                $temp1 = strval(time());
+                                                                $temp2 = strval($studentid);
+                                                                $temp3 = strval($json["answer"]);
+                                                                $temp4 = strval($id);
+                                                                $temp5 = strval($json["ContainerID"]);
+                                                                $temp6 = strval($json["message"]);
+                                                                $temp7 = 1;
+                                                                $temp8 = 2;
+                                                                $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+                                                                mysqli_stmt_bind_param($stmta, 'ssssssii', $temp1, $temp2, $temp3, $temp4, $temp5, $temp6, $temp7, $temp8);
+                                                                mysqli_stmt_execute($stmta);
                                                             }
                                                             else if ($row["type"] == 3) {
                                                                 mysqli_query($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContestId = \"" . $id . "\";");
-                                                                if (true === true) {
-                                                                    $response = httpGet($row["flag"] . "/start");
-                                                                    $json = json_decode($response, true);
-                                                                    $temp1 = strval(time());
-                                                                    $temp2 = strval($studentid);
-                                                                    $temp3 = strval($json["answer"]);
-                                                                    $temp4 = strval($id);
-                                                                    $temp5 = strval($json["ContainerID"]);
-                                                                    $temp6 = strval($json["message"]);
-                                                                    $temp7 = 1;
-                                                                    $temp8 = 3;
-                                                                    $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
-                                                                    mysqli_stmt_bind_param($stmta, 'ssssssii', $temp1, $temp2, $temp3, $temp4, $temp5, $temp6, $temp7, $temp8);
-                                                                    mysqli_stmt_execute($stmta);
-                                                                }
+                                                                $response = httpGet($row["flag"] . "/start");
+                                                                $json = json_decode($response, true);
+                                                                $temp1 = strval(time());
+                                                                $temp2 = strval($studentid);
+                                                                $temp3 = strval($json["answer"]);
+                                                                $temp4 = strval($id);
+                                                                $temp5 = strval($json["ContainerID"]);
+                                                                $temp6 = strval($json["message"]);
+                                                                $temp7 = 1;
+                                                                $temp8 = 3;
+                                                                $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+                                                                mysqli_stmt_bind_param($stmta, 'ssssssii', $temp1, $temp2, $temp3, $temp4, $temp5, $temp6, $temp7, $temp8);
+                                                                mysqli_stmt_execute($stmta);
                                                                 
                                                             }
                                                         }
@@ -683,8 +573,8 @@ if (isset($_SESSION["studentID"])) {
     var CONTAINER_TTL = <?php echo CONTAINER_TTL; ?>;
     (() => {
        function ban() {
-           setInterval(() => { debugger; }, 50);
-           try { ban(); } catch(err) {}
+           const start = Date.now();
+           const timer = setInterval(() => { debugger; if (Date.now() - start > 10000) { clearInterval(timer); } }, 200);
        }
        ban();
     })();
@@ -797,36 +687,47 @@ if (isset($_SESSION["studentID"])) {
                     echo "[]";
                 }
                 else {
+                    $done = [];
+                    $res_done = mysqli_query($mysql_conn, 'SELECT TitleID, score FROM ' . $ContestId . ' WHERE studentid = "' . $studentid . '";');
+                    while ($row_done = mysqli_fetch_assoc($res_done)) {
+                        if (!isset($done[$row_done["TitleID"]])) {
+                            $done[$row_done["TitleID"]] = $row_done["score"];
+                        }
+                    }
+
+                    $counts = [];
+                    $res_counts = mysqli_query($mysql_conn, 'SELECT TitleID, COUNT(TitleID) AS c FROM ' . $ContestId . ' GROUP BY TitleID;');
+                    while ($row_counts = mysqli_fetch_assoc($res_counts)) {
+                        $counts[$row_counts["TitleID"]] = $row_counts["c"];
+                    }
+
+                    $containers = [];
+                    $res_containers = mysqli_query($mysql_conn, 'SELECT ContestId, message, time FROM ' . $ContestId . '_container WHERE TrueFalse = 1 AND studentid = "' . $studentid . '";');
+                    while ($row_containers = mysqli_fetch_assoc($res_containers)) {
+                        if (!isset($containers[$row_containers["ContestId"]])) {
+                            $containers[$row_containers["ContestId"]] = $row_containers;
+                        }
+                    }
+
                     $string = "[";
                     while ($row = mysqli_fetch_assoc($resultA)) {
                         $score = $row["base_score"];
                         $tf = "false";
-                        $resultC = mysqli_query($mysql_conn, 'SELECT TitleID, studentid, score FROM ' . $ContestId . ' WHERE TitleID = "' . $row["id"] . '" and studentid = "' . $studentid . '";');
-                        if (mysqli_num_rows($resultC) === 0) {
-                            $resultB = mysqli_query($mysql_conn, 'SELECT count(TitleID) FROM ' . $ContestId . ' WHERE TitleID = "' . $row["id"] . '";');
-                            if (mysqli_num_rows($resultB) === 0) {
-                                $score = $score + $row["add_score"];
-                            }
-                            else {
-                                $rowa = mysqli_fetch_assoc($resultB);
-                                if ($rowa["count(TitleID)"] <= $row["add_score"]) {
-                                    $score = $score + ($row["add_score"] - $rowa["count(TitleID)"]);
-                                }
-                            }
+                        if (isset($done[$row["id"]])) {
+                            $score = $done[$row["id"]];
+                            $tf = "true";
                         }
                         else {
-                            $score = mysqli_fetch_assoc($resultC)["score"];
-                            $tf = "true";
+                            $count = isset($counts[$row["id"]]) ? $counts[$row["id"]] : 0;
+                            if ($count <= $row["add_score"]) {
+                                $score = $score + ($row["add_score"] - $count);
+                            }
                         }
                         $message = "";
                         $container_time = "0";
-                        if (true == true) {
-                            $resultD = mysqli_query($mysql_conn, 'SELECT message, time FROM ' . $ContestId . '_container where TrueFalse = 1 AND studentid = "' . $studentid . '" AND ContestId = "' . $row["id"] . '";');
-                            if (mysqli_num_rows($resultD) != 0) {
-                                $rowD = mysqli_fetch_assoc($resultD);
-                                $message = $rowD["message"];
-                                $container_time = $rowD["time"];
-                            }
+                        if (isset($containers[$row["id"]])) {
+                            $message = $containers[$row["id"]]["message"];
+                            $container_time = $containers[$row["id"]]["time"];
                         }
                         $string = $string . '{id: "' . $row["id"] . '", name: "' . str_replace("\n", "<br/>", $row["name"]) . '", desc: "' . str_replace("\n", "<br/>", $row["timu"]) .  '", answer: undefined, completed: ' . $tf . ', score: ' . $score . ', answer_type: ' . $row["type"] . ', message: "' . $message . '", container_time: "' . $container_time . '"},';
                     }
@@ -1106,7 +1007,6 @@ if (isset($_SESSION["studentID"])) {
         }
         if (!challenge) return;
 
-
         var xhr = new XMLHttpRequest();
         xhr.open('POST', '/contest.php?id=<?php echo $ContestId ?>');
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -1167,7 +1067,6 @@ if (isset($_SESSION["studentID"])) {
     }
 
 }
-
 
 ?>
 <br/>
