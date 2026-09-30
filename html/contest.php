@@ -74,11 +74,17 @@ if (isset($_SESSION["studentID"])) {
     $studentid = $_SESSION["studentID"];
     if(ctype_digit($studentid)) {
         $mysql_conn = db_connect();
-        $response = mysqli_query($mysql_conn, "select id, username, email from user where id = \"" . $studentid . "\";");
+        $response = mysqli_query($mysql_conn, "select id, username, email, enable from user where id = \"" . $studentid . "\";");
         if (mysqli_num_rows($response) === 0) {
             echo "None";
         }
         else {
+            $user_row = mysqli_fetch_assoc($response);
+            if (($user_row["enable"] ?? 0) == 0) {
+                http_response_code(403);
+                echo "<br/><center><h1>您已被禁止参赛</h1></center>";
+                exit();
+            }
             if (isset($_GET["id"])) {
                 $ContestId = $_GET["id"];
                 if (ctype_xdigit($ContestId)) {
@@ -588,7 +594,7 @@ if (isset($_SESSION["studentID"])) {
         if (!answer) { showToast('请输入答案', 'error'); return; }
         document.getElementById("captcha-modal").style.display = "flex";}
 
-    var currentUser = { username: '<?php if(true) {$rows = mysqli_fetch_assoc($response); echo $rows["username"];} ?>' };
+    var currentUser = { username: '<?php echo $user_row["username"]; ?>' };
     var contestInfo = {
         id: '<?php echo $ContestId; ?>',
         name: '<?php echo $Contest_Name; ?>',

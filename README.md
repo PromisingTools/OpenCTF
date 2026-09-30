@@ -57,7 +57,8 @@ create table user (
     id       char(255) PRIMARY KEY,
     username char(255),
     password char(255),
-    email    char(255)
+    email    char(255),
+    enable   int(1) NOT NULL DEFAULT 0
 );
 
 create table cmtn (
@@ -67,6 +68,12 @@ create table cmtn (
     end_time   char(255),
     message    varchar(10000)
 );
+```
+
+> 从旧版本升级时，需给 `user` 表手动增加 `enable` 字段（控制是否允许参赛，`1` 允许 / `0` 禁止，默认阻止参赛）：
+
+```sql
+ALTER TABLE user ADD COLUMN enable int(1) NOT NULL DEFAULT 0;
 ```
 
 ---
@@ -83,6 +90,14 @@ create table cmtn (
 ```
 
 ---
+
+## 参赛权限与注册开关
+
+- `user.enable` 字段控制用户是否允许参赛：`1` 允许、`0` 禁止。被禁止的用户在 `homepage.php` 无法加载竞赛列表、访问 `contest.php` 会被直接拒绝。
+- 管理员可在 `dashboard.php` 的用户列表中查看每个用户的参赛状态，并进行单个「批准参赛 / 阻止参赛」或「全部允许参赛 / 全部拒绝参赛」操作。
+- 管理员可在 `dashboard.php` 通过「批量导入用户」按行导入用户，每行格式为 `学号,姓名,邮箱,初始密码`（导入的用户默认 `enable=0`）。
+- 通过注册页 `index.php` 新注册的用户默认 `enable=0`（阻止参赛），需管理员批准后才能参赛。
+- `config.php` 中的 `$allow_register` 控制是否允许用户自行注册：`true` 允许、`false` 禁止。
 
 ## 安全建议（注意事项）
 

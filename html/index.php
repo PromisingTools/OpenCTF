@@ -82,6 +82,10 @@ else if (isset($_POST["status"])) {
 
     }
     else if ($status === "Register") {
+        if ($allow_register !== true) {
+            echo "alert(\"当前禁止注册用户\");location.reload();";
+            exit();
+        }
         if (isset($_POST["username"]) && isset($_POST["password"]) && isset($_POST["studentid"]) && isset($_POST["email"]) && isset($_POST["code"])) {
             $username = htmlspecialchars($_POST["username"], ENT_QUOTES);
             $password = $_POST["password"];
@@ -101,7 +105,7 @@ else if (isset($_POST["status"])) {
                         mysqli_stmt_execute($stmt);
                         $result = mysqli_stmt_get_result($stmt);
                         if (mysqli_num_rows($result) === 0) {
-                            $stmt = mysqli_prepare($mysql_conn, "insert into user (id, username, password, email) value (? ,?, ?, ?)");
+                            $stmt = mysqli_prepare($mysql_conn, "insert into user (id, username, password, email, enable) value (? ,?, ?, ?, 0)");
                             $password = password_hash($password, PASSWORD_DEFAULT);
                             mysqli_stmt_bind_param($stmt, 'ssss', $studentid, $username, $password, $email);
                             mysqli_stmt_execute($stmt);

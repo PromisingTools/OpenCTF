@@ -13,14 +13,14 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
         $func = $_POST["func"];
         if($func === "userlist") {
             $mysql_conn = db_connect();
-            $response = mysqli_query($mysql_conn, "select username,id,email from user;");
+            $response = mysqli_query($mysql_conn, "select username,id,email,enable from user;");
             if (mysqli_num_rows($response) === 0) {
                 echo "None";
             } else {
                 $jsonID = 0;
                 $string = "[";
                 while ($row = mysqli_fetch_assoc($response)) {
-                    $string = $string . "{\"studentid\":\"" . $row['id'] . "\",\"username\":\"" . $row["username"] . "\",\"email\":\"" . $row["email"] . "\"},";
+                    $string = $string . "{\"studentid\":\"" . $row['id'] . "\",\"username\":\"" . $row["username"] . "\",\"email\":\"" . $row["email"] . "\",\"enable\":\"" . $row["enable"] . "\"},";
                     $jsonID = $jsonID + 1;
                 }
                 $string = substr($string, 0, -1);
@@ -28,6 +28,76 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                 echo $string;
                 
             }
+            exit();
+        }
+        else if ($func === "setenable") {
+            $studentid = htmlspecialchars($_POST["studentid"] ?? "", ENT_QUOTES);
+            $enable = isset($_POST["enable"]) ? (int)$_POST["enable"] : -1;
+            if (ctype_digit($studentid) === true && ($enable === 0 || $enable === 1)) {
+                $mysql_conn = db_connect();
+                $stmt = mysqli_prepare($mysql_conn, "UPDATE user SET enable = ? WHERE id = ?");
+                mysqli_stmt_bind_param($stmt, 'is', $enable, $studentid);
+                mysqli_stmt_execute($stmt);
+            }
+            exit();
+        }
+        else if ($func === "setallenable") {
+            $enable = isset($_POST["enable"]) ? (int)$_POST["enable"] : -1;
+            if ($enable === 0 || $enable === 1) {
+                $mysql_conn = db_connect();
+                $stmt = mysqli_prepare($mysql_conn, "UPDATE user SET enable = ?");
+                mysqli_stmt_bind_param($stmt, 'i', $enable);
+                mysqli_stmt_execute($stmt);
+            }
+            exit();
+        }
+        else if ($func === "importuser") {
+            $data = isset($_POST["data"]) ? $_POST["data"] : "";
+            $lines = preg_split('/\r\n|\r|\n/', $data);
+            $mysql_conn = db_connect();
+            $success = 0;
+            $skip = 0;
+            $error = 0;
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if ($line === "") {
+                    continue;
+                }
+                $parts = explode(",", $line);
+                if (count($parts) !== 4) {
+                    $error++;
+                    continue;
+                }
+                $studentid = trim($parts[0]);
+                $username = trim($parts[1]);
+                $email = trim($parts[2]);
+                $password = trim($parts[3]);
+                if (!ctype_digit($studentid) || $username === "" || $email === "" || $password === "") {
+                    $error++;
+                    continue;
+                }
+                if (strpos($username, "\\") !== false || strpos($username, "/") !== false ||
+                    strpos($email, "\\") !== false || strpos($email, "/") !== false) {
+                    $error++;
+                    continue;
+                }
+                $username = htmlspecialchars($username, ENT_QUOTES);
+                $email = htmlspecialchars($email, ENT_QUOTES);
+                $stmt = mysqli_prepare($mysql_conn, "SELECT id FROM user WHERE id = ?");
+                mysqli_stmt_bind_param($stmt, 's', $studentid);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                if (mysqli_num_rows($result) !== 0) {
+                    $skip++;
+                    continue;
+                }
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = mysqli_prepare($mysql_conn, "INSERT INTO user (id, username, password, email, enable) VALUES (?, ?, ?, ?, 0)");
+                mysqli_stmt_bind_param($stmt, 'ssss', $studentid, $username, $hash, $email);
+                mysqli_stmt_execute($stmt);
+                $success++;
+            }
+            echo json_encode(["success" => $success, "skip" => $skip, "error" => $error]);
             exit();
         }
         else if ($func === "changepassword") {
@@ -518,9 +588,20 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
 
     <div class="main">
         <div class="section active card" id="section-users">
-            <div class="section-title">用户列表</div>
+            <div class="section-title">
+                <span>用户列表</span>
+                <span>
+                    <button class="btn small" onclick="setAllEnable(1)">全部允许参赛</button>
+                    <button class="btn small danger" onclick="setAllEnable(0)">全部拒绝参赛</button>
+                </span>
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="display:block; font-size:0.78rem; color:var(--muted); margin-bottom:4px;">批量导入用户（每行：学号,姓名,邮箱,初始密码）</label>
+                <textarea id="batch-import-data" rows="4" placeholder="2425333120,张三,example@1234.com,0213335242&#10;2425333122,李四,elpmaxe@4321.com,2213335242"></textarea>
+                <button class="btn small" onclick="importUsers()" style="margin-top:8px;">批量导入</button>
+            </div>
             <table>
-                <thead><tr><th>用户名</th><th>学号</th><th>邮箱</th><th>操作</th></tr></thead>
+                <thead><tr><th>用户名</th><th>学号</th><th>邮箱</th><th>参赛状态</th><th>操作</th></tr></thead>
                 <tbody id="user-tbody"></tbody>
             </table>
             <div id="user-empty" class="empty-hint" style="display:none;">暂无用户</div>
@@ -692,12 +773,18 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
 
         for (var i = 0; i < users.length; i++) {
             var u = users[i];
+            var enableStatus = (u.enable == 1)
+                ? '<span style="color:#3fb950;">已经批准参赛</span>'
+                : '<span style="color:#f85149;">已经阻止参赛</span>';
             var tr = document.createElement('tr');
             tr.innerHTML =
                 '<td>' + u.username + '</td>' +
                 '<td>' + (u.studentid || '-') + '</td>' +
                 '<td>' + (u.email || '-') + '</td>' +
+                '<td>' + enableStatus + '</td>' +
                 '<td class="actions">' +
+                    '<button class="btn small" onclick="setUserEnable(\'' + u.studentid + '\',1)">批准参赛</button>' +
+                    '<button class="btn small danger" onclick="setUserEnable(\'' + u.studentid + '\',0)">阻止参赛</button>' +
                     '<button class="btn small" onclick="changePassword(\'' + u.studentid + '\')">改密码</button>' +
                     '<button class="btn small danger" onclick="deleteUser(\'' + u.studentid + '\')">删除</button>' +
                 '</td>';
@@ -745,6 +832,67 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
 
         loadUsers();
         showToast('用户已删除', 'success');
+    }
+
+    function setUserEnable(userId, enable) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/dashboard.php');
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                location.reload();
+            } else {
+                showToast('操作失败', 'error');
+            }
+        };
+        xhr.onerror = function() {
+            showToast('网络错误，无法操作', 'error');
+        };
+        xhr.send("studentid=" + encodeURIComponent(userId) + "&enable=" + enable + "&func=setenable&csrf_token=" + CSRF_TOKEN);
+    }
+
+    function setAllEnable(enable) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/dashboard.php');
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                location.reload();
+            } else {
+                showToast('操作失败', 'error');
+            }
+        };
+        xhr.onerror = function() {
+            showToast('网络错误，无法操作', 'error');
+        };
+        xhr.send("enable=" + enable + "&func=setallenable&csrf_token=" + CSRF_TOKEN);
+    }
+
+    function importUsers() {
+        var data = document.getElementById('batch-import-data').value;
+        if (!data || !data.trim()) {
+            showToast('请输入要导入的用户数据', 'error');
+            return;
+        }
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/dashboard.php');
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                var res = null;
+                try { res = JSON.parse(xhr.responseText); } catch (e) { res = null; }
+                if (res) {
+                    alert('导入完成：成功 ' + res.success + ' 条，跳过（已存在）' + res.skip + ' 条，失败 ' + res.error + ' 条');
+                }
+                location.reload();
+            } else {
+                showToast('导入失败', 'error');
+            }
+        };
+        xhr.onerror = function() {
+            showToast('网络错误，无法导入', 'error');
+        };
+        xhr.send("data=" + encodeURIComponent(data) + "&func=importuser&csrf_token=" + CSRF_TOKEN);
     }
 
     function loadContests() {

@@ -12,10 +12,11 @@ if (isset($_SESSION["studentID"])) {
     $studentid = $_SESSION["studentID"];
     if(ctype_digit($studentid)) {
         $mysql_conn = db_connect();
-        $response = mysqli_query($mysql_conn, "select id, username, email from user where id = \"" . $studentid . "\";");
+        $response = mysqli_query($mysql_conn, "select id, username, email, enable from user where id = \"" . $studentid . "\";");
         if (mysqli_num_rows($response) === 0) {
             echo "None";
         } else {
+            $rows = mysqli_fetch_assoc($response);
 
             if (isset($_POST["status"])) {
                 csrf_verify();
@@ -47,6 +48,10 @@ if (isset($_SESSION["studentID"])) {
                     }
                 }
                 else if ($status === "ContestList") {
+                    if (($rows["enable"] ?? 0) == 0) {
+                        echo "None";
+                        exit();
+                    }
                     $result = mysqli_query($mysql_conn, "SELECT id, name, start_time, end_time FROM cmtn;");
                     if (mysqli_num_rows($result) === 0) {
                         echo "None";
@@ -63,6 +68,10 @@ if (isset($_SESSION["studentID"])) {
                     }
                 }
                 else if ($status === "RankList") {
+                    if (($rows["enable"] ?? 0) == 0) {
+                        echo "None";
+                        exit();
+                    }
                     if (isset($_POST["id"])) {
                         $id = $_POST["id"];
                         if (ctype_xdigit($id)) {
@@ -108,7 +117,6 @@ if (isset($_SESSION["studentID"])) {
                 exit();
             }
             
-            $rows = mysqli_fetch_assoc($response);
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">

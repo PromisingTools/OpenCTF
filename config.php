@@ -7,11 +7,18 @@ $Administrator = [
 
 $DataBase = [
     "host" => "127.0.0.1",
-    "port" => "33060",
+    "port" => "3306",
     "username" => "OpenCTF",
     "password" => "1234567890",
     "db_name" => "openctf"
 ];
+
+/*
+    是否允许用户自行注册。
+    true  允许注册（默认）
+    false 禁止注册（注册接口会在后端直接拒绝）
+*/
+$allow_register = true;
 
 /* ===================== 公共函数（各页面共享） ===================== */
 
@@ -153,8 +160,11 @@ define("CONTAINER_TTL", 1500);
 
     初始化数据库时记得在数据库里创建这两个表
 
-    create table user (id char(255) PRIMARY KEY, username char(255), password char(255), email char(255));
+    create table user (id char(255) PRIMARY KEY, username char(255), password char(255), email char(255), enable int(1) NOT NULL DEFAULT 0);
     create table cmtn (id char(255) PRIMARY KEY, name char(255), start_time char(255), end_time char(255), message varchar(10000));
+
+    如果是从旧版本升级，user 表需要手动增加 enable 字段（该字段控制是否允许参赛，1 允许 / 0 禁止，默认阻止参赛）：
+    ALTER TABLE user ADD COLUMN enable int(1) NOT NULL DEFAULT 0;
 
     需要给 $DataBase 里设置的 db_name 数据库 给予 SELECT,DELETE,UPDATE,INSERT,DROP,CREATE 权限
     
