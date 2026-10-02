@@ -87,10 +87,16 @@ else if (isset($_POST["status"])) {
             exit();
         }
         if (isset($_POST["username"]) && isset($_POST["password"]) && isset($_POST["studentid"]) && isset($_POST["email"]) && isset($_POST["code"])) {
-            $username = htmlspecialchars($_POST["username"], ENT_QUOTES);
+            $username_raw = $_POST["username"];
+            $email_raw = $_POST["email"];
+            $username = htmlspecialchars($username_raw, ENT_QUOTES);
             $password = $_POST["password"];
             $studentid = htmlspecialchars($_POST["studentid"], ENT_QUOTES);
-            $email = htmlspecialchars($_POST["email"], ENT_QUOTES);
+            $email = htmlspecialchars($email_raw, ENT_QUOTES);
+            if (!is_safe_text($username_raw, 64) || !is_safe_text($email_raw, 254)) {
+                echo "alert(\"用户名或邮箱不能包含换行等控制字符，且长度不能超过限制\");location.reload();";
+                exit();
+            }
             if (strpos($username, "\\") !== false || strpos($username, "/") !== false || strpos($email, "\\") !== false || strpos($email, "/") !== false) {
                 echo "alert(\"用户名或邮箱不能包含斜杠或反斜杠\");location.reload();";
                 exit();

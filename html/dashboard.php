@@ -17,16 +17,17 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
             if (mysqli_num_rows($response) === 0) {
                 echo "None";
             } else {
-                $jsonID = 0;
-                $string = "[";
+                $users = [];
                 while ($row = mysqli_fetch_assoc($response)) {
-                    $string = $string . "{\"studentid\":\"" . $row['id'] . "\",\"username\":\"" . $row["username"] . "\",\"email\":\"" . $row["email"] . "\",\"enable\":\"" . $row["enable"] . "\"},";
-                    $jsonID = $jsonID + 1;
+                    /* 使用 json_encode 构造，避免用户名/邮箱中的特殊字符破坏 JSON */
+                    $users[] = [
+                        "studentid" => $row['id'],
+                        "username"  => $row["username"],
+                        "email"     => $row["email"],
+                        "enable"    => (string)$row["enable"],
+                    ];
                 }
-                $string = substr($string, 0, -1);
-                $string = $string . "]";
-                echo $string;
-                
+                echo json_encode($users, JSON_UNESCAPED_UNICODE);
             }
             exit();
         }
@@ -73,6 +74,10 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                 $email = trim($parts[2]);
                 $password = trim($parts[3]);
                 if (!ctype_digit($studentid) || $username === "" || $email === "" || $password === "") {
+                    $error++;
+                    continue;
+                }
+                if (!is_safe_text($username, 64) || !is_safe_text($email, 254)) {
                     $error++;
                     continue;
                 }

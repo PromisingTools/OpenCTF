@@ -38,6 +38,29 @@ function csrf_verify() {
     }
 }
 
+/*
+    校验用户名 / 邮箱等文本字段是否安全。
+
+    拒绝控制字符（换行 \n、回车 \r、制表符 \t、NUL 等）：
+    这类字符会污染后台手工拼接的 JSON（例如 dashboard.php 的用户列表），
+    导致管理员面板解析失败；同时限制最大长度，避免超长字段。
+
+    返回 true 表示通过校验。
+*/
+function is_safe_text($value, $maxLen = 64) {
+    if (!is_string($value)) {
+        return false;
+    }
+    if (strlen($value) > $maxLen) {
+        return false;
+    }
+    /* 匹配 ASCII 控制字符（0x00-0x1F、0x7F），不使用 /u 以便逐字节判断 */
+    if (preg_match('/[\x00-\x1F\x7F]/', $value) === 1) {
+        return false;
+    }
+    return true;
+}
+
 function GenerateImage($code) {
     $image = imagecreatetruecolor(120, 40);
 

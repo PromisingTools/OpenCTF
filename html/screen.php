@@ -119,13 +119,11 @@ if (isset($_SESSION["Administrator"])) {
 <?php
         $resultA = mysqli_query($mysql_conn, "SELECT p.score, p.studentid, u.username FROM " . $_GET["id"] . "_pm p JOIN user u ON u.id = p.studentid;");
         if (mysqli_num_rows($resultA) !== 0) {
-            $string = "";
+            $rankRows = [];
             while($rowA = mysqli_fetch_assoc($resultA)) {
-                $string = $string . "{studentid: '" . $rowA["studentid"] . "', username: '" . $rowA["username"] . "', score: " . $rowA["score"] . "},";
+                $rankRows[] = ["studentid" => $rowA["studentid"], "username" => $rowA["username"], "score" => (int)$rowA["score"]];
             }
-            $string = substr($string, 0, -1);
-            echo $string;
-
+            echo json_encode($rankRows, JSON_UNESCAPED_UNICODE);
         }
 
 ?>

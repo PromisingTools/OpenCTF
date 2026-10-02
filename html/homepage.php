@@ -22,6 +22,10 @@ if (isset($_SESSION["studentID"])) {
                 csrf_verify();
                 $status = $_POST["status"];
                 if ($status === "Change") {
+                    if (!is_safe_text($_POST['username'] ?? '', 64) || !is_safe_text($_POST['email'] ?? '', 254)) {
+                        http_response_code(400);
+                        exit("用户名或邮箱不能包含换行等控制字符，且长度不能超过限制");
+                    }
                     if (strpos($_POST['username'] ?? '', "\\") !== false || strpos($_POST['username'] ?? '', "/") !== false ||
                         strpos($_POST['email'] ?? '', "\\") !== false || strpos($_POST['email'] ?? '', "/") !== false) {
                         http_response_code(400);
@@ -86,13 +90,11 @@ if (isset($_SESSION["studentID"])) {
                                 exit();
                             }
                             else {
-                                $string = "{\"data\": [";
+                                $rankRows = [];
                                 while ($row = mysqli_fetch_assoc($result)) {
-                                    $string = $string . '{"studentid": "' . $row["studentid"] . '", "username": "' . $row["username"] . '", "score": "' . $row["score"] . '"},';
-                                    
+                                    $rankRows[] = ["studentid" => $row["studentid"], "username" => $row["username"], "score" => (string)$row["score"]];
                                 }
-                                $string = substr($string, 0, -1);
-                                $string = $string . "],";
+                                $string = '{"data": ' . json_encode($rankRows, JSON_UNESCAPED_UNICODE) . ',';
                                 
                                 $result = mysqli_query($mysql_conn, "SELECT rn, studentid, score FROM (SELECT studentid,score, ROW_NUMBER() OVER (ORDER BY score DESC) AS rn FROM " . $id . "_pm) AS t WHERE studentid = '" . $_SESSION["studentID"] . "';");
                                 if (mysqli_num_rows($result) === 0) {
