@@ -87,7 +87,7 @@ else if (isset($_POST["status"])) {
             exit();
         }
         if (isset($_POST["username"]) && isset($_POST["password"]) && isset($_POST["studentid"]) && isset($_POST["email"]) && isset($_POST["code"])) {
-            if (!empty($_POST["username"]) || !empty(isset($_POST["password"]) || !empty(isset($_POST["studentid"]) || !empty($_POST["email"]) || !empty($_POST["code"])) {
+            if (empty($_POST["username"]) || empty(isset($_POST["password"]) || empty(isset($_POST["studentid"]) || empty($_POST["email"]) || empty($_POST["code"])) {
                 $_SESSION["code"] = RandomCode(8);
                 exit();
             }
