@@ -256,7 +256,7 @@ if (isset($_SESSION["studentID"])) {
                                                                 if (mysqli_num_rows($resultA) != 0) {
                                                                     while ($row_a = mysqli_fetch_assoc($resultA)){
                                                                         if (!empty($row_a["flag"])) {
-                                                                            httpPostForm($row_a["flag"] . "/stop", [$row_a["ContainerId"]]);
+                                                                            httpPostForm($row_a["flag"] . "/stop", [$row_a["ContainerId"]], ["X-Auth-Token: " . CONTAINER_API_TOKEN]);
                                                                         }
                                                                         $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = ? AND TrueFalse = 1;");
                                                                         mysqli_stmt_bind_param($stmt_stop, 's', $row_a["ContainerId"]);
@@ -264,14 +264,14 @@ if (isset($_SESSION["studentID"])) {
                                                                     }
                                                                 }
                                                                 
-                                                                $response = httpGet($row["flag"] . "/start");
+                                                                $response = httpGet($row["flag"] . "/start", ["X-Auth-Token: " . CONTAINER_API_TOKEN]);
                                                                 $json = json_decode($response, true);
                                                                 $temp1 = strval(intval(microtime(true) * 1000));
                                                                 $temp2 = strval($studentid);
-                                                                $temp3 = strval($json["answer"]);
+                                                                $temp3 = htmlspecialchars(strval($json["answer"]), ENT_QUOTES);
                                                                 $temp4 = strval($id);
-                                                                $temp5 = strval($json["ContainerID"]);
-                                                                $temp6 = strval($json["message"]);
+                                                                $temp5 = htmlspecialchars(strval($json["ContainerID"]), ENT_QUOTES);
+                                                                $temp6 = htmlspecialchars(strval($json["message"]), ENT_QUOTES);
                                                                 $temp7 = 1;
                                                                 $temp8 = 2;
                                                                 $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
@@ -280,14 +280,14 @@ if (isset($_SESSION["studentID"])) {
                                                             }
                                                             else if ($row["type"] == 3) {
                                                                 mysqli_query($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContestId = \"" . $id . "\";");
-                                                                $response = httpGet($row["flag"] . "/start");
+                                                                $response = httpGet($row["flag"] . "/start", ["X-Auth-Token: " . CONTAINER_API_TOKEN]);
                                                                 $json = json_decode($response, true);
                                                                 $temp1 = strval(intval(microtime(true) * 1000));
                                                                 $temp2 = strval($studentid);
-                                                                $temp3 = strval($json["answer"]);
+                                                                $temp3 = htmlspecialchars(strval($json["answer"]), ENT_QUOTES);
                                                                 $temp4 = strval($id);
-                                                                $temp5 = strval($json["ContainerID"]);
-                                                                $temp6 = strval($json["message"]);
+                                                                $temp5 = htmlspecialchars(strval($json["ContainerID"]), ENT_QUOTES);
+                                                                $temp6 = htmlspecialchars(strval($json["message"]), ENT_QUOTES);
                                                                 $temp7 = 1;
                                                                 $temp8 = 3;
                                                                 $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
@@ -318,7 +318,7 @@ if (isset($_SESSION["studentID"])) {
                                                 $resultA = mysqli_query($mysql_conn, "SELECT c.ContainerId, s.flag FROM " . $ContestId . "_container c JOIN " . $ContestId . "_sc s ON c.ContestId = s.id WHERE c.studentid = \"" . $studentid . "\" AND c.ContestId = \"" . $id . "\" AND c.type = 2 AND c.TrueFalse = 1;");
                                                 if (mysqli_num_rows($resultA) != 0) {
                                                     while ($row_a = mysqli_fetch_assoc($resultA)) {
-                                                        httpPostForm($row_a["flag"] . "/stop", [$row_a["ContainerId"]]);
+                                                        httpPostForm($row_a["flag"] . "/stop", [$row_a["ContainerId"]], ["X-Auth-Token: " . CONTAINER_API_TOKEN]);
                                                         $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = ? AND TrueFalse = 1;");
                                                         mysqli_stmt_bind_param($stmt_stop, 's', $row_a["ContainerId"]);
                                                         mysqli_stmt_execute($stmt_stop);
@@ -574,12 +574,44 @@ if (isset($_SESSION["studentID"])) {
 <script>
     var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
     var CONTAINER_TTL = <?php echo CONTAINER_TTL; ?>;
-    (() => {
-       function ban() {
-           const start = Date.now();
-           const timer = setInterval(() => { debugger; if (Date.now() - start > 10000) { clearInterval(timer); } }, 200);
-       }
-       ban();
+    (function () {
+        var locked = false;
+        function punish() {
+            if (locked) return;
+            locked = true;
+            try {
+                document.documentElement.innerHTML =
+                    '<body style="background:#0d1117;color:#f85149;font-family:Consolas,monospace;text-align:center;padding-top:20vh;">' +
+                    '<h1>检测到调试行为，页面已锁定</h1></body>';
+            } catch (e) {}
+            try { window.location.replace('about:blank'); } catch (e) {}
+        }
+
+        setInterval(function () {
+            var t0 = Date.now();
+            debugger;
+            if (Date.now() - t0 > 120) { punish(); }
+        }, 200);
+
+        document.addEventListener('keydown', function (e) {
+            var k = (e.key || '').toUpperCase();
+            if (k === 'F12' ||
+                (e.ctrlKey && e.shiftKey && (k === 'I' || k === 'J' || k === 'C' || k === 'K')) ||
+                (e.ctrlKey && k === 'U') ||
+                (e.metaKey && e.altKey && (k === 'I' || k === 'J' || k === 'C'))) {
+                e.preventDefault();
+                e.stopPropagation();
+                punish();
+            }
+        }, true);
+        document.addEventListener('contextmenu', function (e) { e.preventDefault(); }, true);
+
+        var hits = 0;
+        setInterval(function () {
+            var w = window.outerWidth - window.innerWidth;
+            var h = window.outerHeight - window.innerHeight;
+            if (w > 240 || h > 240) { if (++hits >= 3) punish(); } else { hits = 0; }
+        }, 1500);
     })();
 
     function BtnCancel() {document.getElementById("captcha-modal").style.display = "none";}

@@ -16,7 +16,7 @@ if (isset($_SESSION["Administrator"])) {
                     while ($rowC = mysqli_fetch_assoc($cleanup)) {
                         if (intval(microtime(true) * 1000) - intval($rowC["time"]) >= CONTAINER_TTL * 1000) {
                             if (!empty($rowC["flag"])) {
-                                httpPostForm($rowC["flag"] . "/stop", [$rowC["ContainerId"]]);
+                                httpPostForm($rowC["flag"] . "/stop", [$rowC["ContainerId"]], ["X-Auth-Token: " . CONTAINER_API_TOKEN]);
                             }
                             $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE " . $_GET["id"] . "_container SET TrueFalse = 0 WHERE ContainerId = ? AND TrueFalse = 1;");
                             mysqli_stmt_bind_param($stmt_stop, 's', $rowC["ContainerId"]);

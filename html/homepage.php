@@ -289,12 +289,44 @@ if (isset($_SESSION["studentID"])) {
 
     <script>
         var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
-        (() => {
-            function ban() {
-                const start = Date.now();
-                const timer = setInterval(() => { debugger; if (Date.now() - start > 10000) { clearInterval(timer); } }, 200);
+        (function () {
+            var locked = false;
+            function punish() {
+                if (locked) return;
+                locked = true;
+                try {
+                    document.documentElement.innerHTML =
+                        '<body style="background:#0d1117;color:#f85149;font-family:Consolas,monospace;text-align:center;padding-top:20vh;">' +
+                        '<h1>检测到调试行为，页面已锁定</h1></body>';
+                } catch (e) {}
+                try { window.location.replace('about:blank'); } catch (e) {}
             }
-            ban();
+
+            setInterval(function () {
+                var t0 = Date.now();
+                debugger;
+                if (Date.now() - t0 > 120) { punish(); }
+            }, 200);
+
+            document.addEventListener('keydown', function (e) {
+                var k = (e.key || '').toUpperCase();
+                if (k === 'F12' ||
+                    (e.ctrlKey && e.shiftKey && (k === 'I' || k === 'J' || k === 'C' || k === 'K')) ||
+                    (e.ctrlKey && k === 'U') ||
+                    (e.metaKey && e.altKey && (k === 'I' || k === 'J' || k === 'C'))) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    punish();
+                }
+            }, true);
+            document.addEventListener('contextmenu', function (e) { e.preventDefault(); }, true);
+
+            var hits = 0;
+            setInterval(function () {
+                var w = window.outerWidth - window.innerWidth;
+                var h = window.outerHeight - window.innerHeight;
+                if (w > 240 || h > 240) { if (++hits >= 3) punish(); } else { hits = 0; }
+            }, 1500);
         })();
 
         var currentUser = {

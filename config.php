@@ -20,6 +20,21 @@ $DataBase = [
 */
 $allow_register = true;
 
+/*
+有限制动态容器存活时长（秒），25 分钟
+单位是秒
+*/
+define("CONTAINER_TTL", 1500);
+
+/*
+    动态容器 API 鉴权令牌（HTTP 请求头 X-Auth-Token）。
+    Web 端调用容器 API 的 /start、/stop 时，会通过请求头 X-Auth-Token 携带本值；
+    app.py 在处理 /start、/stop 之前会校验该请求头，只有与自身硬编码的令牌一致才处理请求，否则返回 401。
+    本值必须与 app.py 中的 CONTAINER_API_TOKEN 完全一致；正式部署请修改为随机强密钥。
+    该令牌只能阻止未授权的直接调用，仍建议通过防火墙限制容器 API 仅允许 Web 服务器等可信来源访问。
+*/
+define("CONTAINER_API_TOKEN", "020c84a3d3841be34f4806dad78cff1dc7f34fe99ca11afd");
+
 /* ===================== 公共函数（各页面共享） ===================== */
 
 function csrf_token() {
@@ -160,13 +175,6 @@ function db_connect() {
 date_default_timezone_set('Asia/Shanghai');
 
 /*
-有限制动态容器存活时长（秒），25 分钟
-单位是秒
-*/
-define("CONTAINER_TTL", 1500);
-
-
-/*
     sudo apt install php-gd
     sudo yum install php-gd
 
@@ -209,5 +217,49 @@ define("CONTAINER_TTL", 1500);
 
 
 
+*/
+
+/*
+    部署、使用与安全说明
+
+    项目信息：
+        博客：https://blog.csdn.net/khchgkhbdfxk/article/details/166897392
+        下载：https://download.csdn.net/download/khchgkhbdfxk/92965797
+        该平台适用于小型 CTF 比赛。
+
+    快速部署：
+        将项目解压到 /var/www/ 目录，开启 Apache2 并配置好数据库即可。
+
+    数据库要求补充：
+        暂时只支持 MySQL 和 MariaDB；数据库存储引擎需设为 InnoDB，字符集设为 UTF8MB4。
+        MySQL 配置示例：
+            [mysqld]
+            default-storage-engine = InnoDB
+            character-set-server = utf8mb4
+
+    PHP 扩展要求：
+        在 PHP 插件中开启 CURL 功能（php-gd 的安装见上方注释）。
+
+    目录结构：
+        /var/www/config.php
+        /var/www/html/index.php
+        /var/www/html/contest.php
+        /var/www/html/dashboard.php
+        /var/www/html/homepage.php
+        /var/www/html/screen.php
+
+    参赛权限与注册开关：
+        user.enable 字段控制用户是否允许参赛：1 允许、0 禁止。被禁止的用户在 homepage.php 无法加载竞赛列表、访问 contest.php 会被直接拒绝。
+        管理员可在 dashboard.php 的用户列表中查看每个用户的参赛状态，并进行单个「批准参赛 / 阻止参赛」或「全部允许参赛 / 全部拒绝参赛」操作。
+        管理员可在 dashboard.php 通过「批量导入用户」按行导入用户，每行格式为 学号,姓名,邮箱,初始密码（导入的用户默认 enable=0）。
+        通过注册页 index.php 新注册的用户默认 enable=0（阻止参赛），需管理员批准后才能参赛。
+        $allow_register 控制是否允许用户自行注册：true 允许、false 禁止。
+
+    安全建议（注意事项）：
+        1. 部署后立即修改默认凭据：请修改 $Administrator 的默认管理员密码（Admin / 1234567890）和 $DataBase 的数据库密码（OpenCTF / 1234567890），避免使用源码中硬编码的默认值。
+        2. config.php 不要暴露在 Web 根目录：config.php 应位于站点根目录（html/）之外，并确保 Apache 的 DocumentRoot 指向 html/，防止配置文件被直接访问而泄露凭据。
+        3. 数据库权限说明：平台需要 DROP 和 CREATE 权限（用于动态创建/删除比赛数据表），建议仅在 db_name 数据库上授予所需权限，并限制数据库账号的来源主机，避免授予全局（*.*）权限。
+        4. 动态容器 API（app.py）的安全配置：/start、/stop 现通过请求头 X-Auth-Token 鉴权（见上方 CONTAINER_API_TOKEN 注释）；请将示例默认令牌替换为随机强密钥；示例答案仍为硬编码，正式使用时应随机化每次答案；同时建议通过防火墙仅允许 Web 服务器等可信来源访问 API。
+        5. 建议启用 HTTPS：会话 Cookie 未设置 Secure 标志，在明文 HTTP 下易被窃取，建议为站点启用 HTTPS。
 */
 ?>

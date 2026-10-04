@@ -78,6 +78,19 @@ ALTER TABLE user ADD COLUMN enable int(1) NOT NULL DEFAULT 0;
 
 ---
 
+## 数据表说明
+
+比赛相关表以比赛 ID 作为前缀命名：
+
+- `user` 表记录学号、姓名、密码、邮箱（`id` 为学号）。
+- `cmtn` 表记录比赛 ID、比赛名称、开始时间、结束时间（代码中 `competition` 对应 `cmtn`）。
+- `<比赛ID>_ll` 记录该比赛的理论题。
+- `<比赛ID>_sc` 记录该比赛的实操题。
+- `<比赛ID>_pm` 记录每个用户的总分，也就是排名。
+- `<比赛ID>` 记录单个用户做对题目对应的分数（该分数是最终判定的分数）。
+
+---
+
 ## 目录结构
 
 ```
@@ -99,6 +112,34 @@ ALTER TABLE user ADD COLUMN enable int(1) NOT NULL DEFAULT 0;
 - 通过注册页 `index.php` 新注册的用户默认 `enable=0`（阻止参赛），需管理员批准后才能参赛。
 - `config.php` 中的 `$allow_register` 控制是否允许用户自行注册：`true` 允许、`false` 禁止。
 
+## 实操题评分与动态容器
+
+### 实操题扣分规则
+
+- 第一个做对题目的分数为 附加分 + 基础分。
+- 第二个做对的分数为 附加分 - 1 + 基础分。
+- 第三个为 附加分 - 2 + 基础分，第四个为 附加分 - 3 + 基础分，以此类推……
+- 直到附加分扣完为止，基础分不会扣。
+
+### 动态容器
+
+- 实操题支持随机 flag 和动态容器功能，通过请求第三方 API 实现。
+- 需要在 `dashboard.php` 里选择动态容器功能并配置第三方 API 地址。
+- 「无限制动态答案」：比赛用户在启动容器时不会销毁之前的容器。
+- 「有限制动态答案」：比赛用户在启动容器时会请求 API 的 `/stop` 来销毁容器。
+- 有限制动态容器的存活时长由 `config.php` 的 `CONTAINER_TTL` 定义（`1500` 秒，即 25 分钟），超时后由 `screen.php` 清理。
+- 请求 API 的格式和返回值请看 `app.py` 文件。
+
+---
+
+## 动态容器 API 鉴权（X-Auth-Token）
+
+- `config.php` 中的 `CONTAINER_API_TOKEN` 与 `app.py` 中的 `CONTAINER_API_TOKEN` 是动态容器 API 的共享鉴权令牌。
+- Web 端调用容器 API 的 `/start`、`/stop` 时，会在 HTTP 请求头中携带 `X-Auth-Token`（取值为 `CONTAINER_API_TOKEN`）。
+- `app.py` 在处理 `/start`、`/stop` 之前会校验请求头 `X-Auth-Token` 是否与自身硬编码的令牌一致；不一致时返回 `401 {"error": "unauthorized"}`。
+- 两处令牌必须完全一致，否则容器启动/停止会全部失败；正式部署时请修改为随机强密钥，不要使用示例默认值。
+- 该令牌只能阻止未授权的直接调用，仍建议通过防火墙限制容器 API 仅允许 Web 服务器等可信来源访问。
+
 ## 安全建议（注意事项）
 
 1. **部署后立即修改默认凭据**
@@ -110,8 +151,8 @@ ALTER TABLE user ADD COLUMN enable int(1) NOT NULL DEFAULT 0;
 3. **数据库权限说明**
    平台需要 `DROP` 和 `CREATE` 权限（用于动态创建/删除比赛数据表），建议仅在 `db_name` 数据库上授予所需权限，并限制数据库账号的来源主机，避免授予全局（`*.*`）权限。
 
-4. **动态容器 API（`app.py`）需加鉴权与访问控制**
-   `/start`、`/stop` 当前无鉴权且示例答案硬编码。正式使用时应为 API 增加鉴权、随机化每次答案，并通过防火墙校验请求来源是否合法（仅允许 Web 服务器等可信来源访问）。
+4. **动态容器 API（`app.py`）的安全配置**
+   `/start`、`/stop` 现通过请求头 `X-Auth-Token` 鉴权（见 `config.php` 与 `app.py` 中的 `CONTAINER_API_TOKEN`）。请将示例默认令牌替换为随机强密钥；示例答案仍为硬编码，正式使用时应随机化每次答案；同时建议通过防火墙仅允许 Web 服务器等可信来源访问 API。
 
 5. **建议启用 HTTPS**
    会话 Cookie 未设置 `Secure` 标志，在明文 HTTP 下易被窃取，建议为站点启用 HTTPS。
