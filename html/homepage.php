@@ -455,7 +455,7 @@ if (isset($_SESSION["studentID"])) {
                             tr.innerHTML = '<td>' + ranking[j].rank + '</td><td>' + row.studentid + '</td><td>' + row.username + '</td><td>' + row.score + '</td>';
                             tbody.appendChild(tr);
                         }
-                        console.log(users.current);
+                        
                         var summary = '';
                         if (users.current === "None") {
                             summary = '你尚未参加该比赛或暂无排名';
