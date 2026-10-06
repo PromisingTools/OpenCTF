@@ -11,14 +11,14 @@ if (isset($_SESSION["Administrator"])) {
             if (ctype_xdigit($_GET["id"])) {
                 include_once "../config.php";
                 $mysql_conn = db_connect();
-                $cleanup = mysqli_query($mysql_conn, "SELECT c.ContainerId, c.time, s.flag FROM " . $_GET["id"] . "_container c LEFT JOIN " . $_GET["id"] . "_sc s ON c.ContestId = s.id WHERE c.TrueFalse = 1 AND c.type = 2;");
+                $cleanup = mysqli_query($mysql_conn, "SELECT c.ContainerId, c.time, s.flag FROM OpenCTF_" . $_GET["id"] . "_container c LEFT JOIN OpenCTF_" . $_GET["id"] . "_sc s ON c.ContestId = s.id WHERE c.TrueFalse = 1 AND c.type = 2;");
                 if ($cleanup && mysqli_num_rows($cleanup) !== 0) {
                     while ($rowC = mysqli_fetch_assoc($cleanup)) {
                         if (intval(microtime(true) * 1000) - intval($rowC["time"]) >= CONTAINER_TTL * 1000) {
                             if (!empty($rowC["flag"])) {
                                 httpPostForm($rowC["flag"] . "/stop", [$rowC["ContainerId"]], ["X-Auth-Token: " . CONTAINER_API_TOKEN]);
                             }
-                            $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE " . $_GET["id"] . "_container SET TrueFalse = 0 WHERE ContainerId = ? AND TrueFalse = 1;");
+                            $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE OpenCTF_" . $_GET["id"] . "_container SET TrueFalse = 0 WHERE ContainerId = ? AND TrueFalse = 1;");
                             mysqli_stmt_bind_param($stmt_stop, 's', $rowC["ContainerId"]);
                             mysqli_stmt_execute($stmt_stop);
                         }
@@ -117,7 +117,7 @@ if (isset($_SESSION["Administrator"])) {
         function loadRanking() {
             var mockData = [
 <?php
-        $resultA = mysqli_query($mysql_conn, "SELECT p.score, p.studentid, u.username FROM " . $_GET["id"] . "_pm p JOIN user u ON u.id = p.studentid;");
+        $resultA = mysqli_query($mysql_conn, "SELECT p.score, p.studentid, u.username FROM OpenCTF_" . $_GET["id"] . "_pm p JOIN user u ON u.id = p.studentid;");
         if (mysqli_num_rows($resultA) !== 0) {
             $rankRows = [];
             while($rowA = mysqli_fetch_assoc($resultA)) {

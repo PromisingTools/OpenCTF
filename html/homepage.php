@@ -84,7 +84,7 @@ if (isset($_SESSION["studentID"])) {
                                 echo "None";
                                 exit();
                             }
-                            $result = mysqli_query($mysql_conn, "SELECT p.studentid, p.score, u.username FROM " . $id . "_pm p LEFT JOIN user u ON u.id = p.studentid;");
+                            $result = mysqli_query($mysql_conn, "SELECT p.studentid, p.score, u.username FROM OpenCTF_" . $id . "_pm p LEFT JOIN user u ON u.id = p.studentid;");
                             if (!$result || mysqli_num_rows($result) === 0) {
                                 echo "None";
                                 exit();
@@ -96,12 +96,12 @@ if (isset($_SESSION["studentID"])) {
                                 }
                                 $string = '{"data": ' . json_encode($rankRows, JSON_UNESCAPED_UNICODE) . ',';
                                 
-                                $result = mysqli_query($mysql_conn, "SELECT rn, studentid, score FROM (SELECT studentid,score, ROW_NUMBER() OVER (ORDER BY score DESC) AS rn FROM " . $id . "_pm) AS t WHERE studentid = '" . $_SESSION["studentID"] . "';");
+                                $result = mysqli_query($mysql_conn, "SELECT rn, studentid, score FROM (SELECT studentid,score, ROW_NUMBER() OVER (ORDER BY score DESC) AS rn FROM OpenCTF_" . $id . "_pm) AS t WHERE studentid = '" . $_SESSION["studentID"] . "';");
                                 if (mysqli_num_rows($result) === 0) {
                                     $string = $string . '"current": "None"}';
                                 }
                                 else {
-                                    $tmp = mysqli_query($mysql_conn, "SELECT score from " . $id . "_pm where studentid = \"" . $_SESSION["studentID"] . "\";");
+                                    $tmp = mysqli_query($mysql_conn, "SELECT score from OpenCTF_" . $id . "_pm where studentid = \"" . $_SESSION["studentID"] . "\";");
                                     $rrooww = mysqli_fetch_assoc($tmp);
                                     $row = mysqli_fetch_assoc($result);
                                     $string = $string . '"current" : ';

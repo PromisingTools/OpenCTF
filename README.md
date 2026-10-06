@@ -84,14 +84,14 @@ ALTER TABLE user ADD COLUMN enable int(1) NOT NULL DEFAULT 0;
 
 ## 数据表说明
 
-比赛相关表以比赛 ID 作为前缀命名：
+比赛相关表以 `OpenCTF_` + 比赛 ID 作为前缀命名（比赛 ID 即 `cmtn.id`，为 `md5(比赛名)`，不含 `OpenCTF_` 前缀）：
 
 - `user` 表记录学号、姓名、密码、邮箱（`id` 为学号）。
 - `cmtn` 表记录比赛 ID、比赛名称、开始时间、结束时间（代码中 `competition` 对应 `cmtn`）。
-- `<比赛ID>_ll` 记录该比赛的理论题。
-- `<比赛ID>_sc` 记录该比赛的实操题。
-- `<比赛ID>_pm` 记录每个用户的总分，也就是排名。
-- `<比赛ID>` 记录单个用户做对题目对应的分数（该分数是最终判定的分数）。
+- `OpenCTF_<比赛ID>_ll` 记录该比赛的理论题。
+- `OpenCTF_<比赛ID>_sc` 记录该比赛的实操题。
+- `OpenCTF_<比赛ID>_pm` 记录每个用户的总分，也就是排名。
+- `OpenCTF_<比赛ID>` 记录单个用户做对题目对应的分数（该分数是最终判定的分数）。
 
 ---
 

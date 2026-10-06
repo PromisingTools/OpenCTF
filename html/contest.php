@@ -37,26 +37,26 @@ function checkIdMatch($jsona, $jsonb) {
 }
 
 function UpdateRank ($mysql, $studentid, $contestid) {
-    $result_a = mysqli_query($mysql, "SELECT studentid, score FROM " . $contestid . "_pm WHERE studentid=\"" . $studentid . "\";");
+    $result_a = mysqli_query($mysql, "SELECT studentid, score FROM OpenCTF_" . $contestid . "_pm WHERE studentid=\"" . $studentid . "\";");
     if (mysqli_num_rows($result_a) === 0) {
-        $result_b = mysqli_query($mysql, "SELECT score FROM " . $contestid . " WHERE studentid = \"" . $studentid . "\";");
+        $result_b = mysqli_query($mysql, "SELECT score FROM OpenCTF_" . $contestid . " WHERE studentid = \"" . $studentid . "\";");
         if (mysqli_num_rows($result_b) !== 0) {
             $score = 0;
             while ($row = mysqli_fetch_assoc($result_b)) {
                 $score = $score + $row["score"];
             }
-            mysqli_query($mysql, "INSERT INTO " . $contestid . "_pm(studentid, score) VALUE (\"" . $studentid . "\", " . $score . ");");
+            mysqli_query($mysql, "INSERT INTO OpenCTF_" . $contestid . "_pm(studentid, score) VALUE (\"" . $studentid . "\", " . $score . ");");
         }
     }
     else {
-        mysqli_query($mysql, "DELETE FROM " . $contestid . "_pm WHERE studentid = \"" . $studentid . "\";");
-        $result_b = mysqli_query($mysql, "SELECT score FROM " . $contestid . " WHERE studentid = \"" . $studentid . "\";");
+        mysqli_query($mysql, "DELETE FROM OpenCTF_" . $contestid . "_pm WHERE studentid = \"" . $studentid . "\";");
+        $result_b = mysqli_query($mysql, "SELECT score FROM OpenCTF_" . $contestid . " WHERE studentid = \"" . $studentid . "\";");
         if (mysqli_num_rows($result_b) !== 0) {
             $score = 0;
             while ($row = mysqli_fetch_assoc($result_b)) {
                 $score = $score + $row["score"];
             }
-            mysqli_query($mysql, "INSERT INTO " . $contestid . "_pm(studentid, score) VALUE (\"" . $studentid . "\", " . $score . ");");
+            mysqli_query($mysql, "INSERT INTO OpenCTF_" . $contestid . "_pm(studentid, score) VALUE (\"" . $studentid . "\", " . $score . ");");
         }
     }
 
@@ -103,7 +103,7 @@ if (isset($_SESSION["studentID"])) {
                                     if ($func === "ll") {
                                         if (isset($_POST["json"])) {
                                             $ll_json = $_POST["json"];
-                                            $result = mysqli_query($mysql_conn, "SELECT id, score, correct FROM " . $ContestId . "_ll;");
+                                            $result = mysqli_query($mysql_conn, "SELECT id, score, correct FROM OpenCTF_" . $ContestId . "_ll;");
                                             if (mysqli_num_rows($result) !== 0) {
                                                 $answer = "[";
                                                 while($row = mysqli_fetch_assoc($result)) {
@@ -116,7 +116,7 @@ if (isset($_SESSION["studentID"])) {
                                                     $ll_json = json_decode($ll_json);
                                                     $answer = json_decode($answer);
                                                     $tmp = $answer[0];
-                                                    $result_q = mysqli_query($mysql_conn, 'SELECT studentid FROM ' . $ContestId . ' WHERE studentid = "' . $studentid . '" and TitleID = "' . $tmp->id . '";');
+                                                    $result_q = mysqli_query($mysql_conn, 'SELECT studentid FROM OpenCTF_' . $ContestId . ' WHERE studentid = "' . $studentid . '" and TitleID = "' . $tmp->id . '";');
                                                     if (mysqli_num_rows($result_q) === 0) {
                                                         foreach ($ll_json as $i) {
                                                             if (!ctype_xdigit($i->id)) {
@@ -124,14 +124,14 @@ if (isset($_SESSION["studentID"])) {
                                                             }
                                                         }
                                                         foreach ($ll_json as $i) {
-                                                            $result_a = mysqli_query($mysql_conn, "SELECT id, score, correct FROM " . $ContestId . "_ll WHERE id = \"" . $i->id . "\";");
+                                                            $result_a = mysqli_query($mysql_conn, "SELECT id, score, correct FROM OpenCTF_" . $ContestId . "_ll WHERE id = \"" . $i->id . "\";");
                                                             $row_a = mysqli_fetch_assoc($result_a);
                                                             $correct = $row_a["correct"]; $score = $row_a["score"];
                                                             if ($correct === $i->answer) {
-                                                                mysqli_query($mysql_conn, 'INSERT INTO ' . $ContestId . '(TitleID, studentid, score) value ("' . $i->id . '", "' . $studentid . '", ' . $score . ');');
+                                                                mysqli_query($mysql_conn, 'INSERT INTO OpenCTF_' . $ContestId . '(TitleID, studentid, score) value ("' . $i->id . '", "' . $studentid . '", ' . $score . ');');
                                                             }
                                                             else {
-                                                                mysqli_query($mysql_conn, 'INSERT INTO ' . $ContestId . '(TitleID, studentid, score) value ("' . $i->id . '", "' . $studentid . '", 0);');
+                                                                mysqli_query($mysql_conn, 'INSERT INTO OpenCTF_' . $ContestId . '(TitleID, studentid, score) value ("' . $i->id . '", "' . $studentid . '", 0);');
                                                             }
                                                         }
                                                         UpdateRank($mysql_conn, $studentid, $ContestId);
@@ -162,36 +162,36 @@ if (isset($_SESSION["studentID"])) {
                                                         if ($_POST["verify_code"] === $_SESSION["code"]) {
                                                             $TitleID = $_POST["id"];
                                                             $Answer = $_POST["answer"];
-                                                            $resultC = mysqli_query($mysql_conn, 'SELECT TitleID FROM ' . $ContestId . ' where TitleID="' . $TitleID . '" AND studentid="' . $studentid . '";');
+                                                            $resultC = mysqli_query($mysql_conn, 'SELECT TitleID FROM OpenCTF_' . $ContestId . ' where TitleID="' . $TitleID . '" AND studentid="' . $studentid . '";');
                                                             if (mysqli_num_rows($resultC) === 0) {
-                                                                $resultA = mysqli_query($mysql_conn, "SELECT id, flag, add_score, base_score, type FROM " . $ContestId . "_sc WHERE id = \"" . $TitleID . "\";");
+                                                                $resultA = mysqli_query($mysql_conn, "SELECT id, flag, add_score, base_score, type FROM OpenCTF_" . $ContestId . "_sc WHERE id = \"" . $TitleID . "\";");
                                                                 if (mysqli_num_rows($resultA) !== 0) {
                                                                     $row_a = mysqli_fetch_assoc($resultA);
                                                                     if ($row_a["type"] == 1) {
                                                                         if ($Answer === $row_a["flag"]) {
                                                                             $score = $row_a["base_score"];
-                                                                            $resultB = mysqli_query($mysql_conn, "SELECT count(TitleID) FROM " . $ContestId . " WHERE TitleID = \"" . $TitleID . "\";");
+                                                                            $resultB = mysqli_query($mysql_conn, "SELECT count(TitleID) FROM OpenCTF_" . $ContestId . " WHERE TitleID = \"" . $TitleID . "\";");
                                                                             $row_b = mysqli_fetch_assoc($resultB);
                                                                             if ($row_b["count(TitleID)"] <= $row_a["add_score"]) {
                                                                                 $score = $score + ($row_a["add_score"] - $row_b["count(TitleID)"]);
                                                                             }
-                                                                            mysqli_query($mysql_conn, "INSERT INTO " . $ContestId . "(TitleID, studentid, score) value (\"" . $TitleID . "\", \"" . $studentid . "\", " . $score . ")");
+                                                                            mysqli_query($mysql_conn, "INSERT INTO OpenCTF_" . $ContestId . "(TitleID, studentid, score) value (\"" . $TitleID . "\", \"" . $studentid . "\", " . $score . ")");
                                                                             UpdateRank($mysql_conn, $studentid, $ContestId);
                                                                             echo "true";
                                                                         }
                                                                     }
                                                                     else {
-                                                                        $resultD = mysqli_query($mysql_conn, "SELECT answer FROM " . $ContestId . "_container WHERE TrueFalse = 1 AND studentid = \"" . $studentid . "\" AND ContestId = \"" . $TitleID . "\";");
+                                                                        $resultD = mysqli_query($mysql_conn, "SELECT answer FROM OpenCTF_" . $ContestId . "_container WHERE TrueFalse = 1 AND studentid = \"" . $studentid . "\" AND ContestId = \"" . $TitleID . "\";");
                                                                         if (mysqli_num_rows($resultD) !== 0) {
                                                                             $row_c = mysqli_fetch_assoc($resultD);
                                                                             if ($Answer === $row_c["answer"]) {
                                                                                 $score = $row_a["base_score"];
-                                                                                $resultB = mysqli_query($mysql_conn, "SELECT count(TitleID) FROM " . $ContestId . " WHERE TitleID = \"" . $TitleID . "\";");
+                                                                                $resultB = mysqli_query($mysql_conn, "SELECT count(TitleID) FROM OpenCTF_" . $ContestId . " WHERE TitleID = \"" . $TitleID . "\";");
                                                                                 $row_b = mysqli_fetch_assoc($resultB);
                                                                                 if ($row_b["count(TitleID)"] <= $row_a["add_score"]) {
                                                                                     $score = $score + ($row_a["add_score"] - $row_b["count(TitleID)"]);
                                                                                 }
-                                                                                mysqli_query($mysql_conn, "INSERT INTO " . $ContestId . "(TitleID, studentid, score) value (\"" . $TitleID . "\", \"" . $studentid . "\", " . $score . ")");
+                                                                                mysqli_query($mysql_conn, "INSERT INTO OpenCTF_" . $ContestId . "(TitleID, studentid, score) value (\"" . $TitleID . "\", \"" . $studentid . "\", " . $score . ")");
                                                                                 UpdateRank($mysql_conn, $studentid, $ContestId);
                                                                                 echo "true";
                                                                             }
@@ -237,7 +237,7 @@ if (isset($_SESSION["studentID"])) {
                                                 if (mysqli_num_rows($contest_check) === 0) {
                                                     exit();
                                                 }
-                                                $title_check = mysqli_prepare($mysql_conn, "SELECT id FROM " . $ContestId . "_sc WHERE id = ? ;");
+                                                $title_check = mysqli_prepare($mysql_conn, "SELECT id FROM OpenCTF_" . $ContestId . "_sc WHERE id = ? ;");
                                                 mysqli_stmt_bind_param($title_check, 's', $id);
                                                 mysqli_stmt_execute($title_check);
                                                 $title_check_result = mysqli_stmt_get_result($title_check);
@@ -245,20 +245,20 @@ if (isset($_SESSION["studentID"])) {
                                                     exit();
                                                 }
                                                 if (time() - $_SESSION["visits"] > 15) {
-                                                    $stmt = mysqli_prepare($mysql_conn, "select flag, type from " . $ContestId . "_sc where id = ? ;");
+                                                    $stmt = mysqli_prepare($mysql_conn, "select flag, type from OpenCTF_" . $ContestId . "_sc where id = ? ;");
                                                     mysqli_stmt_bind_param($stmt, 's', $id);
                                                     mysqli_stmt_execute($stmt);
                                                     $result = mysqli_stmt_get_result($stmt);
                                                     if (mysqli_num_rows($result) !== 0) {
                                                         while ($row = mysqli_fetch_assoc($result)) {
                                                             if ($row["type"] == 2) {
-                                                                $resultA = mysqli_query($mysql_conn, "SELECT c.ContainerId, s.flag FROM " . $ContestId . "_container c LEFT JOIN " . $ContestId . "_sc s ON c.ContestId = s.id WHERE c.studentid = \"" . $studentid . "\" AND c.type = 2 AND c.TrueFalse = 1;");
+                                                                $resultA = mysqli_query($mysql_conn, "SELECT c.ContainerId, s.flag FROM OpenCTF_" . $ContestId . "_container c LEFT JOIN OpenCTF_" . $ContestId . "_sc s ON c.ContestId = s.id WHERE c.studentid = \"" . $studentid . "\" AND c.type = 2 AND c.TrueFalse = 1;");
                                                                 if (mysqli_num_rows($resultA) != 0) {
                                                                     while ($row_a = mysqli_fetch_assoc($resultA)){
                                                                         if (!empty($row_a["flag"])) {
                                                                             httpPostForm($row_a["flag"] . "/stop", [$row_a["ContainerId"]], ["X-Auth-Token: " . CONTAINER_API_TOKEN]);
                                                                         }
-                                                                        $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = ? AND TrueFalse = 1;");
+                                                                        $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE OpenCTF_" . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = ? AND TrueFalse = 1;");
                                                                         mysqli_stmt_bind_param($stmt_stop, 's', $row_a["ContainerId"]);
                                                                         mysqli_stmt_execute($stmt_stop);
                                                                     }
@@ -274,12 +274,12 @@ if (isset($_SESSION["studentID"])) {
                                                                 $temp6 = htmlspecialchars(strval($json["message"]), ENT_QUOTES);
                                                                 $temp7 = 1;
                                                                 $temp8 = 2;
-                                                                $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+                                                                $stmta = mysqli_prepare($mysql_conn, "INSERT INTO OpenCTF_" . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
                                                                 mysqli_stmt_bind_param($stmta, 'ssssssii', $temp1, $temp2, $temp3, $temp4, $temp5, $temp6, $temp7, $temp8);
                                                                 mysqli_stmt_execute($stmta);
                                                             }
                                                             else if ($row["type"] == 3) {
-                                                                mysqli_query($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContestId = \"" . $id . "\";");
+                                                                mysqli_query($mysql_conn, "UPDATE OpenCTF_" . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContestId = \"" . $id . "\";");
                                                                 $response = httpGet($row["flag"] . "/start", ["X-Auth-Token: " . CONTAINER_API_TOKEN]);
                                                                 $json = json_decode($response, true);
                                                                 $temp1 = strval(intval(microtime(true) * 1000));
@@ -290,7 +290,7 @@ if (isset($_SESSION["studentID"])) {
                                                                 $temp6 = htmlspecialchars(strval($json["message"]), ENT_QUOTES);
                                                                 $temp7 = 1;
                                                                 $temp8 = 3;
-                                                                $stmta = mysqli_prepare($mysql_conn, "INSERT INTO " . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+                                                                $stmta = mysqli_prepare($mysql_conn, "INSERT INTO OpenCTF_" . $ContestId . "_container(time, studentid, answer, ContestId, ContainerId, message, TrueFalse, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
                                                                 mysqli_stmt_bind_param($stmta, 'ssssssii', $temp1, $temp2, $temp3, $temp4, $temp5, $temp6, $temp7, $temp8);
                                                                 mysqli_stmt_execute($stmta);
                                                                 
@@ -315,11 +315,11 @@ if (isset($_SESSION["studentID"])) {
                                         if (isset($_POST["id"])) {
                                             $id = $_POST["id"];
                                             if (ctype_xdigit($id)) {
-                                                $resultA = mysqli_query($mysql_conn, "SELECT c.ContainerId, s.flag FROM " . $ContestId . "_container c JOIN " . $ContestId . "_sc s ON c.ContestId = s.id WHERE c.studentid = \"" . $studentid . "\" AND c.ContestId = \"" . $id . "\" AND c.type = 2 AND c.TrueFalse = 1;");
+                                                $resultA = mysqli_query($mysql_conn, "SELECT c.ContainerId, s.flag FROM OpenCTF_" . $ContestId . "_container c JOIN OpenCTF_" . $ContestId . "_sc s ON c.ContestId = s.id WHERE c.studentid = \"" . $studentid . "\" AND c.ContestId = \"" . $id . "\" AND c.type = 2 AND c.TrueFalse = 1;");
                                                 if (mysqli_num_rows($resultA) != 0) {
                                                     while ($row_a = mysqli_fetch_assoc($resultA)) {
                                                         httpPostForm($row_a["flag"] . "/stop", [$row_a["ContainerId"]], ["X-Auth-Token: " . CONTAINER_API_TOKEN]);
-                                                        $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE " . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = ? AND TrueFalse = 1;");
+                                                        $stmt_stop = mysqli_prepare($mysql_conn, "UPDATE OpenCTF_" . $ContestId . "_container SET TrueFalse = 0 WHERE studentid = \"" . $studentid . "\" AND ContainerId = ? AND TrueFalse = 1;");
                                                         mysqli_stmt_bind_param($stmt_stop, 's', $row_a["ContainerId"]);
                                                         mysqli_stmt_execute($stmt_stop);
                                                     }
@@ -630,20 +630,20 @@ if (isset($_SESSION["studentID"])) {
         start: '<?php echo $Contest_Start_Time; ?>',
         end: '<?php echo $Contest_End_Time; ?>'
     };
-    var userScore = <?php if (true) {$result = mysqli_query($mysql_conn, "SELECT score FROM " . $ContestId . "_pm WHERE studentid = \"" . $studentid . "\";");if (mysqli_num_rows($result) === 0) {echo "0";}else {echo mysqli_fetch_assoc($result)["score"];}}?>;
+    var userScore = <?php if (true) {$result = mysqli_query($mysql_conn, "SELECT score FROM OpenCTF_" . $ContestId . "_pm WHERE studentid = \"" . $studentid . "\";");if (mysqli_num_rows($result) === 0) {echo "0";}else {echo mysqli_fetch_assoc($result)["score"];}}?>;
 
-    var userRank = <?php if (true) {$result = mysqli_query($mysql_conn, "SELECT rn, studentid, score FROM (SELECT studentid,score, ROW_NUMBER() OVER (ORDER BY score DESC) AS rn FROM " . $ContestId . "_pm) AS t WHERE studentid = '" . $studentid . "';");if (mysqli_num_rows($result) === 0) {echo "0";}else {echo mysqli_fetch_assoc($result)["rn"];}} ?>;
+    var userRank = <?php if (true) {$result = mysqli_query($mysql_conn, "SELECT rn, studentid, score FROM (SELECT studentid,score, ROW_NUMBER() OVER (ORDER BY score DESC) AS rn FROM OpenCTF_" . $ContestId . "_pm) AS t WHERE studentid = '" . $studentid . "';");if (mysqli_num_rows($result) === 0) {echo "0";}else {echo mysqli_fetch_assoc($result)["rn"];}} ?>;
 
     var theoryQuestions = [];
     var practicalChallenges = [];
     var theoryCompleted = <?php
         if (true) {
-            $resultA = mysqli_query($mysql_conn, 'SELECT id, stem, score, optionA, optionB, optionC, optionD FROM ' . $ContestId . '_ll;');
+            $resultA = mysqli_query($mysql_conn, 'SELECT id, stem, score, optionA, optionB, optionC, optionD FROM OpenCTF_' . $ContestId . '_ll;');
             if (mysqli_num_rows($resultA) === 0) {
                 echo "false";
             }
             else {
-                $resultB = mysqli_query($mysql_conn, 'SELECT TitleID, studentid FROM ' . $ContestId . ' WHERE TitleID = "' . mysqli_fetch_assoc($resultA)["id"] .'" AND studentid = "' . $studentid . '";');
+                $resultB = mysqli_query($mysql_conn, 'SELECT TitleID, studentid FROM OpenCTF_' . $ContestId . ' WHERE TitleID = "' . mysqli_fetch_assoc($resultA)["id"] .'" AND studentid = "' . $studentid . '";');
                 if (mysqli_num_rows($resultB) === 0) {
                     echo "false";
                 }
@@ -700,7 +700,7 @@ if (isset($_SESSION["studentID"])) {
     function loadChallenges() {
         theoryQuestions = <?php
             if (true) {
-                $result = mysqli_query($mysql_conn, 'SELECT id, stem, score, optionA, optionB, optionC, optionD FROM ' . $ContestId . '_ll;');
+                $result = mysqli_query($mysql_conn, 'SELECT id, stem, score, optionA, optionB, optionC, optionD FROM OpenCTF_' . $ContestId . '_ll;');
                 if (mysqli_num_rows($result) === 0) {
                     echo "[]";
                 }
@@ -717,13 +717,13 @@ if (isset($_SESSION["studentID"])) {
         ?>;
         practicalChallenges = <?php
             if (true) {
-                $resultA = mysqli_query($mysql_conn, 'SELECT id, name, timu, base_score, add_score, type FROM ' . $ContestId . '_sc;');
+                $resultA = mysqli_query($mysql_conn, 'SELECT id, name, timu, base_score, add_score, type FROM OpenCTF_' . $ContestId . '_sc;');
                 if (mysqli_num_rows($resultA) === 0) {
                     echo "[]";
                 }
                 else {
                     $done = [];
-                    $res_done = mysqli_query($mysql_conn, 'SELECT TitleID, score FROM ' . $ContestId . ' WHERE studentid = "' . $studentid . '";');
+                    $res_done = mysqli_query($mysql_conn, 'SELECT TitleID, score FROM OpenCTF_' . $ContestId . ' WHERE studentid = "' . $studentid . '";');
                     while ($row_done = mysqli_fetch_assoc($res_done)) {
                         if (!isset($done[$row_done["TitleID"]])) {
                             $done[$row_done["TitleID"]] = $row_done["score"];
@@ -731,13 +731,13 @@ if (isset($_SESSION["studentID"])) {
                     }
 
                     $counts = [];
-                    $res_counts = mysqli_query($mysql_conn, 'SELECT TitleID, COUNT(TitleID) AS c FROM ' . $ContestId . ' GROUP BY TitleID;');
+                    $res_counts = mysqli_query($mysql_conn, 'SELECT TitleID, COUNT(TitleID) AS c FROM OpenCTF_' . $ContestId . ' GROUP BY TitleID;');
                     while ($row_counts = mysqli_fetch_assoc($res_counts)) {
                         $counts[$row_counts["TitleID"]] = $row_counts["c"];
                     }
 
                     $containers = [];
-                    $res_containers = mysqli_query($mysql_conn, 'SELECT ContestId, message, time FROM ' . $ContestId . '_container WHERE TrueFalse = 1 AND studentid = "' . $studentid . '";');
+                    $res_containers = mysqli_query($mysql_conn, 'SELECT ContestId, message, time FROM OpenCTF_' . $ContestId . '_container WHERE TrueFalse = 1 AND studentid = "' . $studentid . '";');
                     while ($row_containers = mysqli_fetch_assoc($res_containers)) {
                         if (!isset($containers[$row_containers["ContestId"]])) {
                             $containers[$row_containers["ContestId"]] = $row_containers;

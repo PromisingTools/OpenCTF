@@ -182,11 +182,11 @@ date_default_timezone_set('Asia/Shanghai');
     数据库只支持 MySQL 和 MariaDB
     competition -> cmtn
     user 表记录 学号 姓名 密码 邮箱
-    cmtn 表记录 比赛ID 比赛名称 开始时间 结束时间
-    比赛ID_ll 记录理论题
-    比赛ID_sc 记录实操题
-    比赛ID_pm 记录某个用户总共拿了多少分,也就是排名
-    比赛ID 表记录单用户对应做对的题目的分数（该分数是最终判定的分数）
+    cmtn 表记录 比赛ID 比赛名称 开始时间 结束时间（比赛ID 为 md5，不含 OpenCTF_ 前缀）
+    OpenCTF_比赛ID_ll 记录理论题
+    OpenCTF_比赛ID_sc 记录实操题
+    OpenCTF_比赛ID_pm 记录某个用户总共拿了多少分,也就是排名
+    OpenCTF_比赛ID 表记录单用户对应做对的题目的分数（该分数是最终判定的分数）
 
 
     初始化数据库时记得在数据库里创建这两个表

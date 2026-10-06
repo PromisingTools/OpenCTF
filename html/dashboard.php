@@ -143,11 +143,11 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                     mysqli_stmt_bind_param($stmt, 'ssss', $id, $cmtnname, $start_time, $end_time);
                     mysqli_stmt_execute($stmt);
                     if (ctype_xdigit($id)) {
-                        mysqli_query($mysql_conn, "create table " . $id . "_ll (id char(255) PRIMARY KEY, optionA char(255), optionB char(255), optionC char(255), optionD char(255), correct char(255), stem char(255), score int(255));");
-                        mysqli_query($mysql_conn, "create table " . $id . "_sc (id char(255) PRIMARY KEY, name char(255), timu char(255), flag char(255), add_score int(255), base_score int(255), type int(1));");
-                        mysqli_query($mysql_conn, "create table " . $id . " (TitleID char(255), studentid char(255), score int(255));");
-                        mysqli_query($mysql_conn, "create table " . $id . "_pm (studentid char(255) PRIMARY KEY, score int(255));");
-                        mysqli_query($mysql_conn, "create table " . $id . "_container (time char(255) PRIMARY KEY, studentid char(255), answer char(255), ContestId char(255), ContainerId char(255), message char(255), TrueFalse int(1), type int(1));");
+                        mysqli_query($mysql_conn, "create table OpenCTF_" . $id . "_ll (id char(255) PRIMARY KEY, optionA char(255), optionB char(255), optionC char(255), optionD char(255), correct char(255), stem char(255), score int(255));");
+                        mysqli_query($mysql_conn, "create table OpenCTF_" . $id . "_sc (id char(255) PRIMARY KEY, name char(255), timu char(255), flag char(255), add_score int(255), base_score int(255), type int(1));");
+                        mysqli_query($mysql_conn, "create table OpenCTF_" . $id . " (TitleID char(255), studentid char(255), score int(255));");
+                        mysqli_query($mysql_conn, "create table OpenCTF_" . $id . "_pm (studentid char(255) PRIMARY KEY, score int(255));");
+                        mysqli_query($mysql_conn, "create table OpenCTF_" . $id . "_container (time char(255) PRIMARY KEY, studentid char(255), answer char(255), ContestId char(255), ContainerId char(255), message char(255), TrueFalse int(1), type int(1));");
                     }
                 }
             }
@@ -190,11 +190,11 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                         mysqli_stmt_bind_param($stmt, 's', $id);
                         mysqli_stmt_execute($stmt);
 
-                        mysqli_query($mysql_conn, "drop table " . $id . "_ll;");
-                        mysqli_query($mysql_conn, "drop table " . $id . "_sc;");
-                        mysqli_query($mysql_conn, "drop table " . $id . ";");
-                        mysqli_query($mysql_conn, "drop table " . $id . "_pm;");
-                        mysqli_query($mysql_conn, "drop table " . $id . "_container;");
+                        mysqli_query($mysql_conn, "drop table OpenCTF_" . $id . "_ll;");
+                        mysqli_query($mysql_conn, "drop table OpenCTF_" . $id . "_sc;");
+                        mysqli_query($mysql_conn, "drop table OpenCTF_" . $id . ";");
+                        mysqli_query($mysql_conn, "drop table OpenCTF_" . $id . "_pm;");
+                        mysqli_query($mysql_conn, "drop table OpenCTF_" . $id . "_container;");
                     }
                 }
             }
@@ -258,15 +258,15 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                             }
                             
                         }
-                        mysqli_query($mysql_conn, "delete from " . $id . "_sc;");
-                        mysqli_query($mysql_conn, "delete from " . $id . "_ll;");
+                        mysqli_query($mysql_conn, "delete from OpenCTF_" . $id . "_sc;");
+                        mysqli_query($mysql_conn, "delete from OpenCTF_" . $id . "_ll;");
                         foreach($ll as $i) {
-                            $stmt = mysqli_prepare($mysql_conn, "INSERT INTO " . $id . "_ll(id, optionA, optionB, optionC, optionD, correct, stem, score) value(?, ?, ?, ?, ?, ?, ?, ?)");
+                            $stmt = mysqli_prepare($mysql_conn, "INSERT INTO OpenCTF_" . $id . "_ll(id, optionA, optionB, optionC, optionD, correct, stem, score) value(?, ?, ?, ?, ?, ?, ?, ?)");
                             mysqli_stmt_bind_param($stmt, 'sssssssi', $i->id, $i->optionA, $i->optionB, $i->optionC, $i->optionD, $i->correct, $i->stem, $i->score);
                             mysqli_stmt_execute($stmt);
                         }
                         foreach($sc as $i) {
-                            $stmt = mysqli_prepare($mysql_conn, "INSERT INTO " . $id . "_sc(id, name, timu, flag, add_score, base_score, type) value(?, ?, ?, ?, ?, ?, ?)");
+                            $stmt = mysqli_prepare($mysql_conn, "INSERT INTO OpenCTF_" . $id . "_sc(id, name, timu, flag, add_score, base_score, type) value(?, ?, ?, ?, ?, ?, ?)");
                             mysqli_stmt_bind_param($stmt, 'ssssiii', $i->id, $i->name, $i->desc, $i->answer, $i->add_score, $i->base_score, $i->answer_type);
                             mysqli_stmt_execute($stmt);
                         }
@@ -285,7 +285,7 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                     $mysql_conn = db_connect();
 
                     $string = "{";
-                    $result = mysqli_query($mysql_conn, "SELECT id, optionA, optionB, optionC, optionD, correct, stem, score FROM " . $id . "_ll;");
+                    $result = mysqli_query($mysql_conn, "SELECT id, optionA, optionB, optionC, optionD, correct, stem, score FROM OpenCTF_" . $id . "_ll;");
                     if (mysqli_num_rows($result) === 0) {
                         $string = $string . '"Theory": "None"';
                     } else {
@@ -299,7 +299,7 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                     }
                     $string = $string . ",";
                     
-                    $result = mysqli_query($mysql_conn, "SELECT id, name, timu, flag, add_score, base_score, type FROM " . $id . "_sc;");
+                    $result = mysqli_query($mysql_conn, "SELECT id, name, timu, flag, add_score, base_score, type FROM OpenCTF_" . $id . "_sc;");
                     if (mysqli_num_rows($result) === 0) {
                         $string = $string . '"Practical": "None"';
                     } else {
