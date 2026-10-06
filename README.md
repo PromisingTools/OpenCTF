@@ -6,6 +6,10 @@
 
 下载：https://download.csdn.net/download/khchgkhbdfxk/92965797
 
+https://gitcode.com/khchgkhbdfxk/OpenCTF
+
+https://github.com/PromisingTools/OpenCTF
+
 该平台适用于**小型 CTF 比赛**。
 
 > 建议阅读 `config.php` 里的注释。
