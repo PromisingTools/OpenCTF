@@ -457,6 +457,8 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         .btn.danger { background:var(--danger); }
         .btn.danger:hover { background:var(--danger-hover); }
         .btn.small { padding:4px 8px; font-size:0.7rem; }
+        .btn.secondary { background:#21262d; border:1px solid var(--border); color:var(--text); }
+        .btn.secondary:hover { background:#30363d; }
         input, textarea, select {
             width:100%;
             background:var(--input-bg);
@@ -661,9 +663,12 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         <div class="modal-title" id="edit-modal-title">编辑题目</div>
 
         <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:6px;">
                 <span style="font-weight:600;">📝 理论题</span>
-                <button class="btn small" onclick="addTheoryProblem()">+ 添加理论题</button>
+                <span style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button class="btn small secondary" onclick="openImportConfirm('theory')">从文件导入题目</button>
+                    <button class="btn small" onclick="addTheoryProblem()">+ 添加理论题</button>
+                </span>
             </div>
             <div id="theory-list"></div>
         </div>
@@ -671,9 +676,12 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         <hr style="border-color:var(--border); margin:16px 0;">
 
         <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:6px;">
                 <span style="font-weight:600;">🔧 实操题</span>
-                <button class="btn small" onclick="addPracticalProblem()">+ 添加实操题</button>
+                <span style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button class="btn small secondary" onclick="openImportConfirm('practical')">从文件导入题目</button>
+                    <button class="btn small" onclick="addPracticalProblem()">+ 添加实操题</button>
+                </span>
             </div>
             <div id="practical-list"></div>
         </div>
@@ -700,12 +708,29 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
     </div>
 </div>
 
+<div class="modal" id="import-confirm-modal">
+    <div class="modal-content" style="max-width:460px;">
+        <div class="modal-title">从文件导入题目</div>
+        <p id="import-confirm-text" style="font-size:0.85rem; line-height:1.7; margin-bottom:18px;">从文件导入题目会覆盖原有的题目，单击确认从文件导入题目</p>
+        <div style="display:flex; gap:8px;">
+            <button class="btn" onclick="confirmImportFile()">确认</button>
+            <button class="btn danger" onclick="cancelImportFile()">取消</button>
+        </div>
+    </div>
+</div>
+
+<input type="file" id="import-file-input" accept=".json,application/json" tabindex="-1" aria-hidden="true"
+       style="position:absolute; left:-9999px; top:0; width:1px; height:1px; opacity:0;"
+       onchange="onImportFileSelected(this)">
+
 <script>
     var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
     var users = [];
     var contests = [];
     var editingContestId = null;
     var editingAnnouncementContestId = null;
+    var pendingImportType = null;
+    var importSeq = 0;
 
     function switchPanel(panel) {
         document.getElementById('nav-users').classList.toggle('active', panel === 'users');
@@ -1024,19 +1049,24 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
     function editProblems(contestId) {
         editingContestId = contestId;
         document.getElementById('edit-modal-title').innerHTML = "<input id=\"debug\" type=\"hidden\" value=\"" + contestId + "\" />编辑题目";
+        document.getElementById('theory-list').innerHTML = '';
+        document.getElementById('practical-list').innerHTML = '';
         document.getElementById('edit-problems-modal').classList.add('active');
         var xhr = new XMLHttpRequest();
         xhr.open('POST', '/dashboard.php');
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.onload = function() {
             if (xhr.status === 200 || xhr.status === 204) {
-                var object = JSON.parse(xhr.responseText);
-                if (object["Practical"] != "None") {
-                    renderPracticalList(object["Practical"]);
+                var object = {};
+                try {
+                    object = JSON.parse(xhr.responseText);
+                } catch (parseErr) {
+                    object = {};
                 }
-                if (object["Theory"] != "None") {
-                    renderTheoryList(object["Theory"]);
-                }
+                var theory = object["Theory"];
+                var practical = object["Practical"];
+                renderTheoryList((theory && theory !== "None") ? theory : []);
+                renderPracticalList((practical && practical !== "None") ? practical : []);
             } else {
                 showToast('错误', 'error');
             }
@@ -1154,6 +1184,262 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         if (el) el.remove();
     }
 
+    function openImportConfirm(kind) {
+        pendingImportType = (kind === 'practical') ? 'practical' : 'theory';
+        document.getElementById('import-confirm-modal').classList.add('active');
+    }
+
+    function cancelImportFile() {
+        pendingImportType = null;
+        closeModal('import-confirm-modal');
+    }
+
+    function confirmImportFile() {
+        closeModal('import-confirm-modal');
+        if (pendingImportType !== 'theory' && pendingImportType !== 'practical') {
+            return;
+        }
+        var input = document.getElementById('import-file-input');
+        if (!input) {
+            showToast('页面缺少文件选择控件', 'error');
+            return;
+        }
+        try { input.value = ''; } catch (e) { }
+        if (typeof input.click === 'function') {
+            input.click();
+        } else {
+            showToast('当前浏览器不支持文件选择，请更换现代浏览器', 'error');
+        }
+    }
+
+    function onImportFileSelected(input) {
+        if (!input || !input.files || input.files.length === 0) {
+            return;
+        }
+        var file = input.files[0];
+        try { input.value = ''; } catch (e) { }
+        var kind = pendingImportType;
+        if (kind !== 'theory' && kind !== 'practical') {
+            return;
+        }
+        if (typeof FileReader === 'undefined') {
+            showToast('当前浏览器不支持读取本地文件，请更换现代浏览器', 'error');
+            return;
+        }
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+            var text = (evt && evt.target) ? evt.target.result : reader.result;
+            handleImportedText(kind, text);
+        };
+        reader.onerror = function() {
+            showToast('读取文件失败，请重试', 'error');
+        };
+        try {
+            reader.readAsText(file, 'UTF-8');
+        } catch (readErr) {
+            showToast('读取文件失败：' + readErr.message, 'error');
+        }
+    }
+
+    function handleImportedText(kind, text) {
+        if (typeof text !== 'string') {
+            text = (text === null || typeof text === 'undefined') ? '' : String(text);
+        }
+        text = text.replace(/^\uFEFF/, '');
+        if (!text.replace(/\s+/g, '')) {
+            showToast('文件内容为空', 'error');
+            return;
+        }
+        var data;
+        try {
+            data = JSON.parse(text);
+        } catch (parseErr) {
+            showToast('JSON 解析失败：' + parseErr.message, 'error');
+            return;
+        }
+        var result = (kind === 'theory') ? validateTheoryImport(data) : validatePracticalImport(data);
+        if (!result.ok) {
+            showToast('导入失败：' + result.error, 'error');
+            return;
+        }
+        applyImportedProblems(kind, result.list);
+    }
+
+    function trimText(value) {
+        if (value === null || typeof value === 'undefined') {
+            return '';
+        }
+        var str = String(value);
+        if (typeof str.trim === 'function') {
+            return str.trim();
+        }
+        return str.replace(/^\s+|\s+$/g, '');
+    }
+
+    function isObject(value) {
+        return Object.prototype.toString.call(value) === '[object Object]';
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function validateTheoryImport(data) {
+        if (!Array.isArray(data)) {
+            return { ok: false, error: '理论题 JSON 必须是数组 [ ... ]' };
+        }
+        var required = ['stem', 'A', 'B', 'C', 'D', 'correct', 'score'];
+        var list = [];
+        for (var i = 0; i < data.length; i++) {
+            var item = data[i];
+            var no = i + 1;
+            if (!isObject(item)) {
+                return { ok: false, error: '第 ' + no + ' 个元素必须是对象 { ... }' };
+            }
+            for (var k = 0; k < required.length; k++) {
+                if (!Object.prototype.hasOwnProperty.call(item, required[k])) {
+                    return { ok: false, error: '第 ' + no + ' 题缺少字段 "' + required[k] + '"' };
+                }
+            }
+            if (typeof item.stem !== 'string' || typeof item.A !== 'string' ||
+                typeof item.B !== 'string' || typeof item.C !== 'string' ||
+                typeof item.D !== 'string' || typeof item.correct !== 'string') {
+                return { ok: false, error: '第 ' + no + ' 题的 stem / A / B / C / D / correct 必须是字符串' };
+            }
+            if (typeof item.score !== 'string' && typeof item.score !== 'number') {
+                return { ok: false, error: '第 ' + no + ' 题的 score 必须是字符串或数字' };
+            }
+            var stem = trimText(item.stem);
+            var correct = trimText(item.correct).toUpperCase();
+            var score = trimText(item.score);
+            if (!stem) {
+                return { ok: false, error: '第 ' + no + ' 题的 stem 不能为空' };
+            }
+            if (correct !== 'A' && correct !== 'B' && correct !== 'C' && correct !== 'D') {
+                return { ok: false, error: '第 ' + no + ' 题的 correct 必须是 A、B、C、D 之一' };
+            }
+            if (!/^\d+$/.test(score)) {
+                return { ok: false, error: '第 ' + no + ' 题的 score 必须是非负整数' };
+            }
+            list.push({
+                stem: stem,
+                optionA: trimText(item.A),
+                optionB: trimText(item.B),
+                optionC: trimText(item.C),
+                optionD: trimText(item.D),
+                correct: correct,
+                score: score
+            });
+        }
+        return { ok: true, list: list };
+    }
+
+    function validatePracticalImport(data) {
+        if (!Array.isArray(data)) {
+            return { ok: false, error: '实操题 JSON 必须是数组 [ ... ]' };
+        }
+        var required = ['name', 'timu', 'flag', 'type', 'base_score', 'add_score'];
+        var list = [];
+        for (var i = 0; i < data.length; i++) {
+            var item = data[i];
+            var no = i + 1;
+            if (!isObject(item)) {
+                return { ok: false, error: '第 ' + no + ' 个元素必须是对象 { ... }' };
+            }
+            for (var k = 0; k < required.length; k++) {
+                if (!Object.prototype.hasOwnProperty.call(item, required[k])) {
+                    return { ok: false, error: '第 ' + no + ' 题缺少字段 "' + required[k] + '"' };
+                }
+            }
+            if (typeof item.name !== 'string' || typeof item.timu !== 'string' || typeof item.flag !== 'string') {
+                return { ok: false, error: '第 ' + no + ' 题的 name / timu / flag 必须是字符串' };
+            }
+            if (typeof item.type !== 'number' && typeof item.type !== 'string') {
+                return { ok: false, error: '第 ' + no + ' 题的 type 必须是数字 1、2 或 3' };
+            }
+            if ((typeof item.base_score !== 'number' && typeof item.base_score !== 'string') ||
+                (typeof item.add_score !== 'number' && typeof item.add_score !== 'string')) {
+                return { ok: false, error: '第 ' + no + ' 题的 base_score / add_score 必须是字符串或数字' };
+            }
+            var name = trimText(item.name);
+            var timu = trimText(item.timu);
+            var flag = trimText(item.flag);
+            var type = trimText(item.type);
+            if (!name) {
+                return { ok: false, error: '第 ' + no + ' 题的 name 不能为空' };
+            }
+            if (!timu) {
+                return { ok: false, error: '第 ' + no + ' 题的 timu 不能为空' };
+            }
+            if (!flag) {
+                return { ok: false, error: '第 ' + no + ' 题的 flag 不能为空' };
+            }
+            if (type !== '1' && type !== '2' && type !== '3') {
+                return { ok: false, error: '第 ' + no + ' 题的 type 必须是数字 1、2 或 3' };
+            }
+            var baseScore = trimText(item.base_score);
+            var addScore = trimText(item.add_score);
+            if (!/^\d+$/.test(baseScore)) {
+                return { ok: false, error: '第 ' + no + ' 题的 base_score 必须是非负整数' };
+            }
+            if (!/^\d+$/.test(addScore)) {
+                return { ok: false, error: '第 ' + no + ' 题的 add_score 必须是非负整数' };
+            }
+            list.push({
+                name: name,
+                desc: timu,
+                answer: flag,
+                answer_type: type,
+                base_score: baseScore,
+                add_score: addScore
+            });
+        }
+        return { ok: true, list: list };
+    }
+
+    function applyImportedProblems(kind, list) {
+        var i;
+        if (kind === 'theory') {
+            var theoryList = [];
+            for (i = 0; i < list.length; i++) {
+                var t = list[i];
+                theoryList.push({
+                    id: 'imp_t_' + (++importSeq) + '_' + i,
+                    stem: escapeHtml(t.stem),
+                    optionA: escapeHtml(t.optionA),
+                    optionB: escapeHtml(t.optionB),
+                    optionC: escapeHtml(t.optionC),
+                    optionD: escapeHtml(t.optionD),
+                    correct: t.correct,
+                    score: escapeHtml(t.score)
+                });
+            }
+            renderTheoryList(theoryList);
+        } else {
+            var practicalList = [];
+            for (i = 0; i < list.length; i++) {
+                var p = list[i];
+                practicalList.push({
+                    id: 'imp_p_' + (++importSeq) + '_' + i,
+                    name: escapeHtml(p.name),
+                    desc: escapeHtml(p.desc),
+                    answer: escapeHtml(p.answer),
+                    answer_type: p.answer_type,
+                    base_score: escapeHtml(p.base_score),
+                    add_score: escapeHtml(p.add_score)
+                });
+            }
+            renderPracticalList(practicalList);
+        }
+        pendingImportType = null;
+        saveProblems();
+    }
+
     function saveProblems() {
         var theoryEditors = document.querySelectorAll('#theory-list .problem-editor');
         var practicalEditors = document.querySelectorAll('#practical-list .problem-editor');
@@ -1220,7 +1506,7 @@ else {echo "<br/><center><br/><h1> Crazy Thursday vivo 50 ! </h1></center>";exit
         xhr.onerror = function() {
             showToast('网络错误，无法保存题目', 'error');
         };
-        xhr.send("func=CompetitionSave&ll=" + JSON.stringify(theoryPayload) + "&sc=" + JSON.stringify(practicalPayload) + "&id=" + document.getElementById("debug").value + "&csrf_token=" + CSRF_TOKEN);
+        xhr.send("func=CompetitionSave&ll=" + encodeURIComponent(JSON.stringify(theoryPayload)) + "&sc=" + encodeURIComponent(JSON.stringify(practicalPayload)) + "&id=" + encodeURIComponent(document.getElementById("debug").value) + "&csrf_token=" + CSRF_TOKEN);
     }
 
     function editAnnouncement(contestId) {

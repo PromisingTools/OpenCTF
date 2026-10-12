@@ -147,13 +147,6 @@ if (isset($_SESSION["Administrator"])) {
         }
 
         loadRanking();
-        (() => {
-            function ban() {
-                const start = Date.now();
-                const timer = setInterval(() => { debugger; if (Date.now() - start > 10000) { clearInterval(timer); } }, 200);
-            }
-            ban();
-        })();
     </script>
 </body>
 </html>
