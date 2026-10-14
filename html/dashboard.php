@@ -244,7 +244,7 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                             $i->name = htmlspecialchars($i->name, ENT_QUOTES);
                             $i->id = hash("md5", $i->name);
                             $i->desc = htmlspecialchars($i->desc, ENT_QUOTES);
-                            $i->answer = htmlspecialchars($i->answer, ENT_QUOTES);
+                            $i->answer = base64_encode($i->answer);
                             $i->add_score = htmlspecialchars($i->add_score, ENT_QUOTES);
                             $i->base_score = htmlspecialchars($i->base_score, ENT_QUOTES);
                             if (!ctype_digit($i->add_score)) {
