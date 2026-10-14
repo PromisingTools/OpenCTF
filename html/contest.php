@@ -1065,7 +1065,7 @@ if (isset($_SESSION["studentID"])) {
             setTimeout(() => {location.reload()}, 1500);
         };
 
-        xhr.send("func=sc&id=" + challenge.id + "&answer=" + window.btoa(unescape(encodeURIComponent(answer))) + "&verify_code=" + document.getElementById("captcha-input").value + "&csrf_token=" + CSRF_TOKEN);
+        xhr.send("func=sc&id=" + challenge.id + "&answer=" + encodeURIComponent(window.btoa(unescape(encodeURIComponent(answer)))) + "&verify_code=" + document.getElementById("captcha-input").value + "&csrf_token=" + CSRF_TOKEN);
     }
 
     function showToast(msg, type) {
