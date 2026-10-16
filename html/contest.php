@@ -284,7 +284,7 @@ if (isset($_SESSION["studentID"])) {
                                                                 $json = json_decode($response, true);
                                                                 $temp1 = strval(intval(microtime(true) * 1000));
                                                                 $temp2 = strval($studentid);
-                                                                $temp3 = base64_encode(strval($json["answer"]));
+                                                                $temp3 = htmlspecialchars($json["answer"], ENT_QUOTES);
                                                                 $temp4 = strval($id);
                                                                 $temp5 = htmlspecialchars(strval($json["ContainerID"]), ENT_QUOTES);
                                                                 $temp6 = htmlspecialchars(strval($json["message"]), ENT_QUOTES);
