@@ -116,8 +116,14 @@ if (isset($_SESSION["studentID"])) {
                                                     $ll_json = json_decode($ll_json);
                                                     $answer = json_decode($answer);
                                                     $tmp = $answer[0];
-                                                    $result_q = mysqli_query($mysql_conn, 'SELECT studentid FROM OpenCTF_' . $ContestId . ' WHERE studentid = "' . $studentid . '" and TitleID = "' . $tmp->id . '";');
-                                                    if (mysqli_num_rows($result_q) === 0) {
+                                                    $status = 0;
+                                                    foreach ($ll_json as $i) {
+                                                        $result_q = mysqli_query($mysql_conn, 'SELECT studentid FROM OpenCTF_' . $ContestId . ' WHERE studentid = "' . $studentid . '" and TitleID = "' . $i->id . '";');
+                                                        if (mysqli_num_rows($result_q) !== 0) {
+                                                            $status = 1;
+                                                        }
+                                                    }
+                                                    if ($status === 0) {
                                                         foreach ($ll_json as $i) {
                                                             if (!ctype_xdigit($i->id)) {
                                                                 exit();
