@@ -161,7 +161,7 @@ if (isset($_SESSION["studentID"])) {
                                                     if (isset($_POST["verify_code"])) {
                                                         if ($_POST["verify_code"] === $_SESSION["code"]) {
                                                             $TitleID = $_POST["id"];
-                                                            $Answer = $_POST["answer"];
+                                                            $Answer = htmlspecialchars(base64_decode($_POST["answer"]), ENT_QUOTES);
                                                             $resultC = mysqli_query($mysql_conn, 'SELECT TitleID FROM OpenCTF_' . $ContestId . ' where TitleID="' . $TitleID . '" AND studentid="' . $studentid . '";');
                                                             if (mysqli_num_rows($resultC) === 0) {
                                                                 $resultA = mysqli_query($mysql_conn, "SELECT id, flag, add_score, base_score, type FROM OpenCTF_" . $ContestId . "_sc WHERE id = \"" . $TitleID . "\";");
@@ -268,7 +268,7 @@ if (isset($_SESSION["studentID"])) {
                                                                 $json = json_decode($response, true);
                                                                 $temp1 = strval(intval(microtime(true) * 1000));
                                                                 $temp2 = strval($studentid);
-                                                                $temp3 = base64_encode($json["answer"]);
+                                                                $temp3 = htmlspecialchars($json["answer"], ENT_QUOTES);
                                                                 $temp4 = strval($id);
                                                                 $temp5 = htmlspecialchars(strval($json["ContainerID"]), ENT_QUOTES);
                                                                 $temp6 = htmlspecialchars(strval($json["message"]), ENT_QUOTES);
