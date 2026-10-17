@@ -112,15 +112,16 @@ if (isset($_SESSION["studentID"])) {
                                                 $answer = substr($answer, 0, -1);
                                                 $answer = $answer . "]";
 
-                                                foreach ($ll_json as $i) {
-                                                    if (!ctype_xdigit($i->id)) {
-                                                        exit();
-                                                    }
-                                                }
-
                                                 if (checkIdMatch($answer, $ll_json)) {
                                                     $ll_json = json_decode($ll_json);
                                                     $answer = json_decode($answer);
+                                                    
+                                                    foreach ($ll_json as $i) {
+                                                        if (!ctype_xdigit($i->id)) {
+                                                            exit();
+                                                        }
+                                                    }
+
                                                     $status = 0;
                                                     foreach ($ll_json as $i) {
                                                         $result_q = mysqli_query($mysql_conn, 'SELECT studentid FROM OpenCTF_' . $ContestId . ' WHERE studentid = "' . $studentid . '" and TitleID = "' . $i->id . '";');
