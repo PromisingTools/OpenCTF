@@ -19,7 +19,6 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
             } else {
                 $users = [];
                 while ($row = mysqli_fetch_assoc($response)) {
-                    /* 使用 json_encode 构造，避免用户名/邮箱中的特殊字符破坏 JSON */
                     $users[] = [
                         "studentid" => $row['id'],
                         "username"  => $row["username"],
@@ -260,6 +259,9 @@ if (isset($_SESSION["Administrator"]) && $_SESSION["Administrator"] === "Adminis
                         }
                         mysqli_query($mysql_conn, "delete from OpenCTF_" . $id . "_sc;");
                         mysqli_query($mysql_conn, "delete from OpenCTF_" . $id . "_ll;");
+                        mysqli_query($mysql_conn, "delete from OpenCTF_" . $id . ";");
+                        mysqli_query($mysql_conn, "delete from OpenCTF_" . $id . "_pm;");
+                        mysqli_query($mysql_conn, "delete from OpenCTF_" . $id . "_container;");
                         foreach($ll as $i) {
                             $stmt = mysqli_prepare($mysql_conn, "INSERT INTO OpenCTF_" . $id . "_ll(id, optionA, optionB, optionC, optionD, correct, stem, score) value(?, ?, ?, ?, ?, ?, ?, ?)");
                             mysqli_stmt_bind_param($stmt, 'sssssssi', $i->id, $i->optionA, $i->optionB, $i->optionC, $i->optionD, $i->correct, $i->stem, $i->score);

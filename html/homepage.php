@@ -96,7 +96,7 @@ if (isset($_SESSION["studentID"])) {
                                 }
                                 $string = '{"data": ' . json_encode($rankRows, JSON_UNESCAPED_UNICODE) . ',';
                                 
-                                $result = mysqli_query($mysql_conn, "SELECT rn, studentid, score FROM (SELECT studentid,score, ROW_NUMBER() OVER (ORDER BY score DESC) AS rn FROM OpenCTF_" . $id . "_pm) AS t WHERE studentid = '" . $_SESSION["studentID"] . "';");
+                                $result = mysqli_query($mysql_conn, "SELECT rn, studentid, score FROM (SELECT studentid,score, RANK() OVER (ORDER BY score DESC) AS rn FROM OpenCTF_" . $id . "_pm) AS t WHERE studentid = '" . $_SESSION["studentID"] . "';");
                                 if (mysqli_num_rows($result) === 0) {
                                     $string = $string . '"current": "None"}';
                                 }
@@ -429,22 +429,21 @@ if (isset($_SESSION["studentID"])) {
                         users = JSON.parse(xhr.responseText);
 
                         users.data.sort(function(a, b) { return b.score - a.score; });
-                        if (users.length < 20) {
-                            var tmp = users.length;
-                            for (var i = 0; i < 20 - tmp; i++) {
-                                users.push({username:"NULL", score: 0});
-                            }
-                        }
-                        
+
                         var ranking = [];
+                        var prevScore = null;
+                        var prevRank = 0;
                         for (var i = 0; i < users.data.length; i++) {
+                            var curScore = users.data[i].score;
+                            var curRank = (i === 0 || curScore !== prevScore) ? (i + 1) : prevRank;
                             ranking.push({
-                                rank: i + 1,
+                                rank: curRank,
                                 studentid: users.data[i].studentid,
                                 username: users.data[i].username,
                                 score: users.data[i].score
                             });
-                            
+                            prevScore = curScore;
+                            prevRank = curRank;
                         }
 
                         var tbody = document.getElementById('ranking-tbody');

@@ -92,7 +92,7 @@ function GenerateImage($code) {
         imagesetpixel($image, mt_rand(0, 120), mt_rand(0, 40), $pixelColor);
     }
 
-    $fontSize = 135;
+    $fontSize = 5;
     $fontWidth = imagefontwidth($fontSize);
     $fontHeight = imagefontheight($fontSize);
 
