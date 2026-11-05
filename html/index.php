@@ -7,7 +7,6 @@ if(isset($_GET["img"])) {
     if ($_GET["img"] === $_SESSION["verify"]) {
         $_SESSION["code"] = RandomCode(8);
         GenerateImage($_SESSION["code"]);
-        exit();
     }
 
 }
