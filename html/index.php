@@ -1,13 +1,15 @@
 <?php
 /* Powered By c4e3bac3@foxmail.com Hello */
 include_once "../config.php";
-session_start(['cookie_httponly' => true]);session_regenerate_id(true);header('Cache-Control: no-cache, no-store, must-revalidate');header('Pragma: no-cache');header('Expires: 0');
+session_start(['cookie_httponly' => true]);header('Cache-Control: no-cache, no-store, must-revalidate');header('Pragma: no-cache');header('Expires: 0');
 
 if(isset($_GET["img"])) {
     if ($_GET["img"] === $_SESSION["verify"]) {
         $_SESSION["code"] = RandomCode(8);
         GenerateImage($_SESSION["code"]);
     }
+    $_SESSION["verify"] = hash("sha512", RandomCode(8));
+    exit();
 
 }
 else if (isset($_POST["status"])) {
@@ -21,6 +23,7 @@ else if (isset($_POST["status"])) {
                 $password = $_POST["password"];
                 if ($username === $Administrator["Username"]) {
                     if ($password === $Administrator["Password"]) {
+                        session_regenerate_id(true);
                         $_SESSION["Administrator"] = "Administrator";
                         echo "window.location.href = \"/dashboard.php\";";
                     }
@@ -53,6 +56,7 @@ else if (isset($_POST["status"])) {
                         } else {
                             while ($row = mysqli_fetch_assoc($result)) {
                                 if (password_verify($password, $row["password"])) {
+                                    session_regenerate_id(true);
                                     $_SESSION["studentID"] = $studentid;
                                     echo "alert(\"登录成功\");location.href = \"/homepage.php\";";
                                 }
